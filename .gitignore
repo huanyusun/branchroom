@@ -1,0 +1,15 @@
+node_modules/
+dist/
+out/
+release/
+coverage/
+.cache/
+*.tsbuildinfo
+.DS_Store
+.env
+.env.*
+!.env.example
+.review-data/
+**/.review-data/
+.local/
+*.log
