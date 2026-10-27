@@ -30,7 +30,7 @@
 
 已知限制与后续补齐点：
 
-- electron-builder 未配置应用图标，使用默认 Electron 图标；也未做公证，不能直接分发。
+- 已补充 Branchroom 应用图标（`build/icons/`），配置 `mac.icon`；打包内 ICNS 与源资源 SHA-256 一致。仍未做公证，不能直接分发。
 - 最近列表展示时逐条重跑 Git 校验，条目多时会有可感知延迟；BR-003 引入持久状态时应改为带失效检测的缓存。
 - `listRepositories` 每次调用都会重新解析 Git 身份，返回的是当时快照而非缓存。
 - BR-001 不包含 Diff、审查状态、Agent Review、Git 写操作；参考原型中的这些能力不算正式实现。

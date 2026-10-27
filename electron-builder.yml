@@ -7,4 +7,5 @@ files:
   - out/**
   - package.json
 mac:
+  icon: build/icons/icon.icns
   target: dir
