@@ -1,0 +1,267 @@
+/* Branchroom 基础视觉：紧凑暗色，延续 IDEA 风格方向（见 .impeccable.md）。
+   BR-001 只包含仓库选择与身份展示；Diff / Agent 审查样式随对应任务补充。 */
+
+:root {
+  --bg: #1e1f22;
+  --panel: #2b2d30;
+  --panel-raised: #313438;
+  --border: #393b40;
+  --text: #dfe1e5;
+  --text-secondary: #9da0a8;
+  --accent: #3574f0;
+  --accent-hover: #4682f2;
+  --danger: #db5c5c;
+  --warning: #d6ae58;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB',
+    'Segoe UI', 'Microsoft YaHei', sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', Menlo, Consolas, 'PingFang SC', monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+.mono,
+code {
+  font-family: var(--font-mono);
+}
+
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  padding: 16px 20px;
+}
+
+/* 顶栏 */
+.app-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+
+.app-title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.app-subtitle {
+  color: var(--text-secondary);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 按钮 */
+.btn {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12.5px;
+  font-family: inherit;
+  cursor: pointer;
+  color: var(--text);
+  background: transparent;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+}
+
+.btn-secondary {
+  border-color: var(--border);
+  background: var(--panel-raised);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.btn-ghost {
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  color: var(--text);
+  background: var(--panel-raised);
+}
+
+/* 面板 */
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-header h2 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: none;
+}
+
+/* 空状态 */
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 560px;
+  margin: 0 auto;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.empty-state h1 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.empty-state p {
+  margin: 0;
+  user-select: text;
+}
+
+/* 仓库身份 */
+.repo-identity {
+  max-width: 720px;
+}
+
+.identity-list {
+  margin: 0;
+  padding: 6px 0;
+}
+
+.identity-row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 12px;
+  padding: 5px 14px;
+}
+
+.identity-row:hover {
+  background: var(--panel-raised);
+}
+
+.identity-row dt {
+  color: var(--text-secondary);
+}
+
+.identity-row dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+/* 最近仓库 */
+.recent-list {
+  flex: none;
+}
+
+.recent-items {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.recent-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 14px;
+}
+
+.recent-item:hover {
+  background: var(--panel-raised);
+}
+
+.recent-item.missing .recent-name,
+.recent-item.missing .recent-path {
+  color: var(--text-secondary);
+}
+
+.recent-name {
+  flex: none;
+  min-width: 120px;
+  font-weight: 500;
+}
+
+.recent-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.recent-state {
+  flex: none;
+  color: var(--warning);
+  font-size: 12px;
+}
+
+/* 错误提示 */
+.error-banner {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px solid var(--danger);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--danger) 14%, var(--panel));
+  user-select: text;
+}
+
+.error-code {
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  margin-left: 6px;
+}

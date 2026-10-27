@@ -1,0 +1,10 @@
+appId: app.branchroom.desktop
+productName: Branchroom
+directories:
+  output: dist
+# 主进程与 preload 已完全打包，运行时不依赖 node_modules。
+files:
+  - out/**
+  - package.json
+mac:
+  target: dir

@@ -1,6 +1,6 @@
 # 首个切片接口契约
 
-下列为正式实现的约定，不是已存在 API。BR-001 将这些类型放入 src/shared/contracts.ts，输入和持久化结构另做运行时 schema 校验。
+下列为正式实现的约定。BR-001 已将这些类型放入 src/shared/contracts.ts，IPC 输入在 src/shared/schemas.ts 做运行时校验。
 
 ```ts
 export type RepoId = string;
@@ -89,6 +89,8 @@ export type Result<T> =
 export interface BranchroomAPI {
   chooseRepository(): Promise<Result<Repository | null>>; // 取消不是异常
   listRepositories(): Promise<Result<Repository[]>>;
+  // BR-001 额外暴露（已实现）：openRepositoryPath(root)、removeRepository(id)、
+  // listRepositoryEntries()，见 src/shared/contracts.ts 的 ExposedBranchroomAPI。
   getSnapshot(repoId: RepoId): Promise<Result<Snapshot>>;
   saveReview(input: {
     repoId: RepoId; snapshotId: SnapshotId; fileId: FileId;

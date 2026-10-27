@@ -29,7 +29,12 @@ Agent 接入任务另读 docs/AGENT-INTEGRATION.md；UI 任务另读 .impeccable
 ## 验证与报告
 
 修改功能前为关键行为写失败测试；验证真实行为而非实现细节。UI 要做实际桌面/浏览器检查。完成后报告真实通过项与限制。
-当前命令：bun run check:prep；bun run test:reference。正式测试命令由 BR-001 建立，并同步更新 README 和本文件。
+
+当前命令：
+- 准备检查与参考原型：`bun run check:prep`；`bun run test:reference`
+- 正式应用（BR-001 建立）：`bun run typecheck`；`bun run test`（vitest 单元+集成）；`bun run test:e2e`（Playwright 真实窗口）；`bun run build`；`bun run package:mac`
+- vitest 只发现 `tests/unit` 与 `tests/integration`；`tests/e2e` 由 Playwright 运行，会先执行 `bun run build`。参考原型的 Bun 测试仍走 `test:reference`，vitest 不扫描 `reference/`。
+- e2e 通过 `BRANCHROOM_USER_DATA_DIR` 隔离 userData，在主进程替换系统目录对话框；不要在生产代码里添加测试后门。
 
 ## Agent skills
 

@@ -16,7 +16,7 @@ Bun 用于开发工具、参考测试，不作为产品安装后的外部先决�
 
 ## 开工时锁定
 
-BR-001 用官方当前文档确认受支持的 Electron 与构建工具组合，锁定依赖和 lockfile，记录实际 Node/Bun 版本。不要把本文当作某一未来版本的兼容保证。
+BR-001（2026-10-28）锁定并验证的组合：Electron 45.0.0、electron-vite 6.0.0、Vite 8.3.5、@vitejs/plugin-react 6.1.2、React 19.3.1、TypeScript 5.9.3、Vitest 5.0.5、@playwright/test 1.64.1、electron-builder 26.18.0，开发环境 Node 22.22.0 + Bun 1.3.11（macOS 15 x86_64）。TypeScript 已发布 7.0（原生编译器），但生态工具链仍以 5.x 为受支持基线，故锁定 5.9，待下游确认后再升级。安装注意：Bun 默认拦截依赖的 postinstall，Electron 二进制需要 `trustedDependencies: ["electron"]` 后重新安装（或手动执行 `node node_modules/electron/install.js`）；受限网络下可用 `ELECTRON_MIRROR` 指定镜像。本文不构成对未来版本兼容性的保证。
 
 ## 官方依据
 
