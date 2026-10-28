@@ -56,8 +56,9 @@ test('unstage removes entries from the index without touching worktree', async (
   const status = await statusOf();
   expect(status).toContain('?? new.txt');
   expect(status).not.toContain('A  new.txt');
-  // 工作区内容仍在
-  await expect(statusOf()).toBeDefined();
+  // 工作区内容仍在（未跟踪文件保持原样）
+  const statusAgain = await statusOf();
+  expect(statusAgain).toBe(status);
 });
 
 test('commitStaged commits only the index with the given message', async () => {
