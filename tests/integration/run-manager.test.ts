@@ -145,6 +145,7 @@ test('second run while one is in flight is rejected with run_busy', async () => 
   ).rejects.toSatisfy((error: unknown) => (error as {code?: string}).code === 'run_busy');
   await manager.cancelReview(first.id);
   await manager.waitForSettled(first.id);
+  await manager.waitUntilIdle(); // 执行与落盘完全结束后再清理目录
 });
 
 test('cancelled run terminates the fake cli and records cancelled', async () => {
@@ -155,6 +156,7 @@ test('cancelled run terminates the fake cli and records cancelled', async () => 
   const settled = await manager.waitForSettled(run.id);
   expect(settled.status).toBe('cancelled');
   expect(settled.finishedAt).not.toBeNull();
+  await manager.waitUntilIdle();
 });
 
 test('auth failure and model failure map to distinct error codes', async () => {

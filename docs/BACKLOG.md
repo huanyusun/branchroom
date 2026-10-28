@@ -14,11 +14,11 @@
 | BR-008 | backlog | feature | Fetch/Pull/Push 与状态恢复、merge/rebase 中断与冲突处理 | BR-007 |
 | BR-009 | backlog | feature | 意图分组、组级/hunk 审查、增量审查优化 | BR-005 |
 | BR-010 | backlog | feature | worktree 任务、Agent 编码会话、从反馈启动修复 | BR-005 |
-| BR-011 | backlog | feature | PR 独立审查入口、固定版本 Diff、人工与 Agent 审核及更新复审；平台与远程回写范围待确定 | BR-003、BR-004 |
+| BR-011 | backlog | feature | GitHub PR 只读审核：独立入口、固定版本 Diff、人工与 Agent 审核及更新复审（设计与计划已写，未实现） | BR-003、BR-004 |
 
 ## BR-011 · PR 审核（新增要求，尚未实现）
 
-用户已要求支持 PR 审核。需求与验收边界见 [PRD 的 PR 审核章节](PRD.md#pr-审核新增产品要求2026-10-28)。平台、入口及远程评论/批准范围确定后细化实施计划；不依赖 BR-008 的通用 fetch/pull/push 全部完成。
+用户已确认 GitHub PR，只读审核，不回写评论或审批；当前明确要求只产出设计和开发计划，不改应用代码。范围见 [产品设计](designs/github-pr-review.md)，开发顺序与验证门槛见 [实施计划](superpowers/plans/2026-10-28-github-pr-review.md)。本任务保持 backlog，不依赖 BR-008 的通用 fetch/pull/push 全部完成。
 
 实现重点：引入独立审查范围及版本身份；从固定版本构建 PR 快照；复用 Diff、人工状态与 Agent Review；保存核验依据 PR 版本而非磁盘工作区；隔离 PR 与工作区记录；PR 模式下不显示工作区暂存/提交操作。先写关键行为失败测试，再实现服务、受限 IPC 与界面，并完成真实 Electron 检查。
 

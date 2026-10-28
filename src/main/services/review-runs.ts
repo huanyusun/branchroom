@@ -62,7 +62,10 @@ export class RunManager {
   readonly #cancelGraceMs: number;
   /** repoId → 当前 run；串行化同一仓库的执行。 */
   readonly #active = new Map<string, Promise<void>>();
+  readonly #executions = new Map<string, Promise<void>>();
   readonly #runners = new Map<string, {cancel(): void}>();
+  /** 已请求取消但执行协程尚未处理的 run。 */
+  readonly #cancelRequested = new Set<string>();
 
   constructor(options: RunManagerOptions) {
     this.#runsDir = options.runsDir;
@@ -196,8 +199,10 @@ export class RunManager {
     }))).finally(() => {
       this.#active.delete(input.repoId);
       this.#runners.delete(run.id);
+      this.#executions.delete(run.id);
     });
     this.#active.set(input.repoId, execution);
+    this.#executions.set(run.id, execution);
     return run;
   }
 
@@ -207,13 +212,20 @@ export class RunManager {
   ): Promise<void> {
     let run: ReviewRun = initial;
     const update = async (next: ReviewRun): Promise<void> => {
+      // 取消是终态：一旦写入 cancelled，执行协程的滞后更新不得覆盖
+      if (run.status === 'cancelled' && next.status !== 'cancelled') return;
       run = next;
       await this.persist(next);
+      if (isTerminal(next)) this.#cancelRequested.delete(next.id);
     };
 
     try {
       const settings = await this.loadSettings();
       const agents = await this.listAgents();
+      if (this.#cancelRequested.has(run.id)) {
+        await update({...run, status: 'cancelled', finishedAt: new Date().toISOString()});
+        return;
+      }
       const capability = agents.find((agent) => agent.provider === run.provider);
       if (capability?.status !== 'available' || capability.executable === null) {
         throw new RunError(
@@ -238,6 +250,8 @@ export class RunManager {
         env: {}
       });
       this.#runners.set(run.id, cli);
+      // spawn 前后的取消请求窗口：立即终止刚启动的进程，走正常 cancelled 流程
+      if (this.#cancelRequested.has(run.id)) cli.cancel();
       const result = await cli.result;
       if (isTerminal(run)) return;
 
@@ -306,17 +320,18 @@ export class RunManager {
   }
 
   async cancelReview(runId: string): Promise<void> {
+    this.#cancelRequested.add(runId);
     const runner = this.#runners.get(runId);
     if (runner !== undefined) {
       runner.cancel();
-      return;
+      return; // 执行协程会把 cancelled 落盘
     }
-    // queued 状态：还没挂到 runner，直接找记录标记取消
+    // 还没挂到 runner（排队中或执行协程尚在准备）：直接找记录标记取消
     for (const repoId of await readdirSafe(this.#runsDir)) {
       const path = this.runPath(repoId, runId);
       try {
         const raw = JSON.parse(await readFile(path, 'utf8')) as ReviewRun;
-        if (raw.status === 'queued') {
+        if (raw.status === 'queued' || raw.status === 'running') {
           await this.persist({...raw, status: 'cancelled', finishedAt: new Date().toISOString()});
           return;
         }
@@ -353,8 +368,10 @@ export class RunManager {
     return runs;
   }
 
-  /** 测试与 UI 轮询用：等待某个 run 进入终态。 */
+  /** 测试与 UI 轮询用：等待某个 run 的执行完全结束（含最终落盘）。 */
   async waitForSettled(runId: string, timeoutMs = 20_000): Promise<ReviewRun> {
+    const execution = this.#executions.get(runId);
+    if (execution !== undefined) await execution;
     const deadline = Date.now() + timeoutMs;
     for (;;) {
       for (const repoId of await readdirSafe(this.#runsDir)) {
@@ -368,6 +385,11 @@ export class RunManager {
       if (Date.now() > deadline) throw new RunError('agent_timeout', `等待 run ${runId} 结束超时。`);
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
+  }
+
+  /** 等待所有进行中的执行结束（测试清理用，避免落盘与目录删除竞争）。 */
+  async waitUntilIdle(): Promise<void> {
+    await Promise.allSettled([...this.#active.values()]);
   }
 }
 
