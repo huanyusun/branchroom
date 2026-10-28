@@ -1,0 +1,1218 @@
+{
+  "schemaVersion": 2,
+  "synthetic": true,
+  "note": "合成教学实例及反例；不是用户数据，不是产品运行测试，不宣称当前实现满足所有模型规则。",
+  "individuals": [
+    {
+      "id": "store-demo",
+      "type": "RepositoryStore",
+      "values": {},
+      "links": {}
+    },
+    {
+      "id": "wt-a",
+      "type": "Worktree",
+      "values": {},
+      "links": {
+        "usesStore": [
+          "store-demo"
+        ]
+      }
+    },
+    {
+      "id": "wt-b",
+      "type": "Worktree",
+      "values": {},
+      "links": {
+        "usesStore": [
+          "store-demo"
+        ]
+      }
+    },
+    {
+      "id": "human-demo",
+      "type": "HumanReviewer",
+      "values": {},
+      "links": {}
+    },
+    {
+      "id": "cli-demo",
+      "type": "AgentInstallation",
+      "values": {},
+      "links": {}
+    },
+    {
+      "id": "content-old",
+      "type": "ContentValue",
+      "values": {
+        "contentKind": "text",
+        "text": "return 0;\n"
+      },
+      "links": {}
+    },
+    {
+      "id": "content-new",
+      "type": "ContentValue",
+      "values": {
+        "contentKind": "text",
+        "text": "return 1;\n"
+      },
+      "links": {}
+    },
+    {
+      "id": "content-base2",
+      "type": "ContentValue",
+      "values": {
+        "contentKind": "text",
+        "text": "return -1;\n"
+      },
+      "links": {}
+    },
+    {
+      "id": "content-empty",
+      "type": "ContentValue",
+      "values": {
+        "contentKind": "text",
+        "text": ""
+      },
+      "links": {}
+    },
+    {
+      "id": "content-absent",
+      "type": "ContentValue",
+      "values": {
+        "contentKind": "absent"
+      },
+      "links": {}
+    },
+    {
+      "id": "content-unavailable",
+      "type": "ContentValue",
+      "values": {
+        "contentKind": "unavailable",
+        "reason": "合成的不可读内容"
+      },
+      "links": {}
+    },
+    {
+      "id": "snap-cmp-original",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-original-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-original"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-original-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-original"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-original",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-original"
+        ],
+        "baseObservation": [
+          "cmp-original-base"
+        ],
+        "currentObservation": [
+          "cmp-original-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-staged",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-staged-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-staged"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-staged-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-staged"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-staged",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": "M",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-staged"
+        ],
+        "baseObservation": [
+          "cmp-staged-base"
+        ],
+        "currentObservation": [
+          "cmp-staged-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-baseline",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-baseline-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-baseline"
+        ],
+        "observedContent": [
+          "content-base2"
+        ]
+      }
+    },
+    {
+      "id": "cmp-baseline-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-baseline"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-baseline",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-baseline"
+        ],
+        "baseObservation": [
+          "cmp-baseline-base"
+        ],
+        "currentObservation": [
+          "cmp-baseline-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-head",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h2",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-head-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-head"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-head-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-head"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-head",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-head"
+        ],
+        "baseObservation": [
+          "cmp-head-base"
+        ],
+        "currentObservation": [
+          "cmp-head-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-rename",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-rename-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-rename"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-rename-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "renamed.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-rename"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-rename",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-rename"
+        ],
+        "baseObservation": [
+          "cmp-rename-base"
+        ],
+        "currentObservation": [
+          "cmp-rename-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-other-wt",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-b"
+        ]
+      }
+    },
+    {
+      "id": "cmp-other-wt-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-other-wt"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-other-wt-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-other-wt"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-other-wt",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-other-wt"
+        ],
+        "baseObservation": [
+          "cmp-other-wt-base"
+        ],
+        "currentObservation": [
+          "cmp-other-wt-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-absent",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-absent-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-absent"
+        ],
+        "observedContent": [
+          "content-absent"
+        ]
+      }
+    },
+    {
+      "id": "cmp-absent-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-absent"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-absent",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-absent"
+        ],
+        "baseObservation": [
+          "cmp-absent-base"
+        ],
+        "currentObservation": [
+          "cmp-absent-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-empty",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-empty-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-empty"
+        ],
+        "observedContent": [
+          "content-empty"
+        ]
+      }
+    },
+    {
+      "id": "cmp-empty-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-empty"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-empty",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-empty"
+        ],
+        "baseObservation": [
+          "cmp-empty-base"
+        ],
+        "currentObservation": [
+          "cmp-empty-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-unavailable",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-unavailable-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-unavailable"
+        ],
+        "observedContent": [
+          "content-unavailable"
+        ]
+      }
+    },
+    {
+      "id": "cmp-unavailable-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-unavailable"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-unavailable",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-unavailable"
+        ],
+        "baseObservation": [
+          "cmp-unavailable-base"
+        ],
+        "currentObservation": [
+          "cmp-unavailable-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-changed",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-changed-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-changed"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-changed-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-changed"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-changed",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-changed"
+        ],
+        "baseObservation": [
+          "cmp-changed-base"
+        ],
+        "currentObservation": [
+          "cmp-changed-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-restored",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-restored-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-restored"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-restored-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "demo.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-restored"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-restored",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-restored"
+        ],
+        "baseObservation": [
+          "cmp-restored-base"
+        ],
+        "currentObservation": [
+          "cmp-restored-current"
+        ]
+      }
+    },
+    {
+      "id": "snap-cmp-second",
+      "type": "Snapshot",
+      "values": {
+        "headRef": "h1",
+        "capturedAt": "2026-10-28T00:00:00Z"
+      },
+      "links": {
+        "recordsWorktree": [
+          "wt-a"
+        ]
+      }
+    },
+    {
+      "id": "cmp-second-base",
+      "type": "FileObservation",
+      "values": {
+        "side": "base",
+        "path": "other.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-second"
+        ],
+        "observedContent": [
+          "content-old"
+        ]
+      }
+    },
+    {
+      "id": "cmp-second-current",
+      "type": "FileObservation",
+      "values": {
+        "side": "current",
+        "path": "other.ts"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-second"
+        ],
+        "observedContent": [
+          "content-new"
+        ]
+      }
+    },
+    {
+      "id": "cmp-second",
+      "type": "ChangeComparison",
+      "values": {
+        "indexStatus": ".",
+        "worktreeStatus": "M"
+      },
+      "links": {
+        "inSnapshot": [
+          "snap-cmp-second"
+        ],
+        "baseObservation": [
+          "cmp-second-base"
+        ],
+        "currentObservation": [
+          "cmp-second-current"
+        ]
+      }
+    },
+    {
+      "id": "judgment-original",
+      "type": "HumanJudgment",
+      "values": {
+        "judgment": "reviewed"
+      },
+      "links": {
+        "judges": [
+          "cmp-original"
+        ]
+      }
+    },
+    {
+      "id": "human-event",
+      "type": "HumanReviewActivity",
+      "values": {},
+      "links": {
+        "performedBy": [
+          "human-demo"
+        ],
+        "examines": [
+          "cmp-original"
+        ],
+        "yieldsJudgment": [
+          "judgment-original"
+        ]
+      }
+    },
+    {
+      "id": "run-one",
+      "type": "AgentReviewRun",
+      "values": {
+        "runStatus": "succeeded"
+      },
+      "links": {
+        "performedBy": [
+          "cli-demo"
+        ],
+        "examines": [
+          "cmp-original"
+        ],
+        "producesReport": [
+          "report-one"
+        ]
+      }
+    },
+    {
+      "id": "report-one",
+      "type": "AgentReport",
+      "values": {},
+      "links": {
+        "covers": [
+          "cmp-original"
+        ]
+      }
+    },
+    {
+      "id": "finding-one",
+      "type": "Finding",
+      "values": {
+        "kind": "issue",
+        "claim": "合成断言：返回值可能不符合调用约定",
+        "locationSide": "current",
+        "startLine": 1,
+        "endLine": 1,
+        "disposition": "open"
+      },
+      "links": {
+        "assertedIn": [
+          "report-one"
+        ],
+        "aboutComparison": [
+          "cmp-original"
+        ],
+        "cites": [
+          "evidence-demo"
+        ]
+      }
+    },
+    {
+      "id": "run-two",
+      "type": "AgentReviewRun",
+      "values": {
+        "runStatus": "succeeded"
+      },
+      "links": {
+        "performedBy": [
+          "cli-demo"
+        ],
+        "examines": [
+          "cmp-original"
+        ],
+        "producesReport": [
+          "report-two"
+        ]
+      }
+    },
+    {
+      "id": "report-two",
+      "type": "AgentReport",
+      "values": {},
+      "links": {
+        "covers": [
+          "cmp-original"
+        ]
+      }
+    },
+    {
+      "id": "finding-two",
+      "type": "Finding",
+      "values": {
+        "kind": "issue",
+        "claim": "合成断言：返回值可能不符合调用约定",
+        "locationSide": "current",
+        "startLine": 1,
+        "endLine": 1,
+        "disposition": "open"
+      },
+      "links": {
+        "assertedIn": [
+          "report-two"
+        ],
+        "aboutComparison": [
+          "cmp-original"
+        ],
+        "cites": [
+          "evidence-demo"
+        ]
+      }
+    },
+    {
+      "id": "evidence-demo",
+      "type": "EvidenceItem",
+      "values": {
+        "body": "合成引用：return 1；未给出调用约定，不能由引用自动证实断言。"
+      },
+      "links": {}
+    },
+    {
+      "id": "draft-demo",
+      "type": "FeedbackDraft",
+      "values": {
+        "body": "请核对调用约定并修正返回值。"
+      },
+      "links": {
+        "derivedFrom": [
+          "finding-one"
+        ],
+        "targets": [
+          "cmp-original"
+        ]
+      }
+    },
+    {
+      "id": "assessment-original",
+      "type": "ApplicabilityAssessment",
+      "values": {
+        "result": "applicable",
+        "policy": "agent-fingerprint-v1-tagged",
+        "evaluatedAt": "2026-10-28T01:00:00Z"
+      },
+      "links": {
+        "assesses": [
+          "finding-one"
+        ],
+        "targetComparison": [
+          "cmp-original"
+        ]
+      }
+    },
+    {
+      "id": "assessment-changed",
+      "type": "ApplicabilityAssessment",
+      "values": {
+        "result": "stale",
+        "policy": "agent-fingerprint-v1-tagged",
+        "evaluatedAt": "2026-10-28T02:00:00Z"
+      },
+      "links": {
+        "assesses": [
+          "finding-one"
+        ],
+        "targetComparison": [
+          "cmp-changed"
+        ]
+      }
+    },
+    {
+      "id": "assessment-restored",
+      "type": "ApplicabilityAssessment",
+      "values": {
+        "result": "applicable",
+        "policy": "agent-fingerprint-v1-tagged",
+        "evaluatedAt": "2026-10-28T03:00:00Z"
+      },
+      "links": {
+        "assesses": [
+          "finding-one"
+        ],
+        "targetComparison": [
+          "cmp-restored"
+        ]
+      }
+    },
+    {
+      "id": "run-zero",
+      "type": "AgentReviewRun",
+      "values": {
+        "runStatus": "succeeded"
+      },
+      "links": {
+        "performedBy": [
+          "cli-demo"
+        ],
+        "examines": [
+          "cmp-original"
+        ],
+        "producesReport": [
+          "report-zero"
+        ]
+      }
+    },
+    {
+      "id": "report-zero",
+      "type": "AgentReport",
+      "values": {},
+      "links": {
+        "covers": [
+          "cmp-original"
+        ]
+      }
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "S-worktree",
+      "sourceComparison": "cmp-original",
+      "targetComparison": "cmp-other-wt",
+      "expected": {
+        "humanApplicability": "stale",
+        "agentApplicability": "stale"
+      },
+      "explanation": "共享存储不能跨工作区共享判断。"
+    },
+    {
+      "id": "S-stage",
+      "sourceComparison": "cmp-original",
+      "targetComparison": "cmp-staged",
+      "expected": {
+        "humanApplicability": "applicable",
+        "agentApplicability": "applicable"
+      },
+      "explanation": "暂存状态不属于内容适用性条件。"
+    },
+    {
+      "id": "S-baseline",
+      "sourceComparison": "cmp-original",
+      "targetComparison": "cmp-baseline",
+      "expected": {
+        "humanApplicability": "stale",
+        "agentApplicability": "stale"
+      },
+      "explanation": "只比较当前文本不足以判断审查材料相同。"
+    },
+    {
+      "id": "S-head",
+      "sourceComparison": "cmp-original",
+      "targetComparison": "cmp-head",
+      "expected": {
+        "humanApplicability": "applicable",
+        "agentApplicability": "stale"
+      },
+      "explanation": "当前人工策略忽略 HEAD 身份但比较基线内容；Agent 策略包含 HEAD。"
+    },
+    {
+      "id": "S-rename",
+      "sourceComparison": "cmp-original",
+      "targetComparison": "cmp-rename",
+      "expected": {
+        "humanApplicability": "stale",
+        "agentApplicability": "stale"
+      },
+      "explanation": "按当前路径策略不迁移判断，不断言逻辑文件是否相同。"
+    },
+    {
+      "id": "S-absent-empty",
+      "sourceComparison": "cmp-absent",
+      "targetComparison": "cmp-empty",
+      "expected": {
+        "humanApplicability": "stale",
+        "agentApplicability": "stale"
+      },
+      "explanation": "缺席与空文本在本体上不同；当前摘要实现不保留这一区别。"
+    },
+    {
+      "id": "S-unavailable",
+      "sourceComparison": "cmp-unavailable",
+      "targetComparison": "cmp-unavailable",
+      "expected": {
+        "humanApplicability": "unknown",
+        "agentApplicability": "unknown"
+      },
+      "explanation": "同一个未知内容标记不能证明内容相等。"
+    },
+    {
+      "id": "S-restored",
+      "sourceComparison": "cmp-original",
+      "targetComparison": "cmp-restored",
+      "expected": {
+        "humanApplicability": "applicable",
+        "agentApplicability": "applicable"
+      },
+      "explanation": "按已声明匹配策略内容恢复后再次匹配，不保证上下文风险已消除。"
+    },
+    {
+      "id": "S-claim",
+      "finding": "finding-one",
+      "draft": "draft-demo",
+      "expected": {
+        "hasAssertion": true,
+        "truth": "unknown",
+        "adoptionImpliesReviewed": false
+      },
+      "explanation": "存在断言与派生草稿，不自动证明断言真实，也不创造新的人工判断。"
+    },
+    {
+      "id": "S-coverage",
+      "run": "run-zero",
+      "requestedComparisons": [
+        "cmp-original",
+        "cmp-second"
+      ],
+      "expected": {
+        "coveredComparisons": [
+          "cmp-original"
+        ],
+        "requestedCoverageComplete": false
+      },
+      "explanation": "报告仅覆盖 cmp-original，不能宣称包含 cmp-second 的整批已覆盖。"
+    },
+    {
+      "id": "S-repeated",
+      "findings": [
+        "finding-one",
+        "finding-two"
+      ],
+      "expected": {
+        "sameClaim": true,
+        "sameFinding": false
+      },
+      "explanation": "同文案的两次断言分别属于两个 run。"
+    }
+  ]
+}

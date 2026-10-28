@@ -101,7 +101,7 @@ export interface RepositoryEntry {
   lastOpenedAt: string;
 }
 
-/** preload 实际暴露的 API 子集（BR-001..004）。 */
+/** preload 实际暴露的 API 子集（BR-001..006）。 */
 export type ExposedBranchroomAPI = Pick<
   BranchroomAPI,
   | 'chooseRepository' | 'listRepositories' | 'getSnapshot' | 'saveReview'
@@ -119,12 +119,29 @@ export type ExposedBranchroomAPI = Pick<
   listReviewEntries(repoId: RepoId): Promise<Result<ReviewOverview>>;
   /** 放弃草稿。 */
   clearDraft(repoId: RepoId, fileId: FileId): Promise<Result<void>>;
+  /** 显式暂存所选文件（git add）。 */
+  stageFiles(repoId: RepoId, paths: string[]): Promise<Result<void>>;
+  /** 显式取消暂存（git restore --staged），工作区内容不动。 */
+  unstageFiles(repoId: RepoId, paths: string[]): Promise<Result<void>>;
+  /** 提交预览：当前索引将被提交的文件与统计。 */
+  previewCommit(repoId: RepoId): Promise<Result<CommitPreview>>;
+  /** 提交当前索引（仅已暂存内容），需要非空提交信息。 */
+  commitStaged(repoId: RepoId, message: string): Promise<Result<{commitHash: string}>>;
+  /** 文件级提交：只提交所选路径的当前工作区内容。 */
+  commitFiles(repoId: RepoId, message: string, paths: string[]): Promise<Result<{commitHash: string}>>;
 };
 
 /** 人工结论概览；recheck 是派生态，reviews 里只存 reviewed/issue。 */
 export interface ReviewOverview {
   reviews: Record<string, ReviewEntryView>;
   drafts: Record<string, DraftEntryView>;
+}
+
+/** 提交预览：当前索引中将被提交的文件与增删统计。 */
+export interface CommitPreview {
+  files: string[];
+  additions: number;
+  deletions: number;
 }
 
 export interface ReviewEntryView {

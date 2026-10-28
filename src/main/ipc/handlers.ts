@@ -8,13 +8,22 @@ import {
 import { buildSnapshot } from '../services/snapshots';
 import type { ReviewService } from '../services/review-service';
 import type { RunManager } from '../services/review-runs';
+import {
+  commitFiles,
+  commitStaged,
+  previewCommit,
+  stageFiles,
+  unstageFiles
+} from '../services/git-staging';
 import type { Repository, RepositoryEntry, Result } from '../../shared/contracts';
 import {
   parseCancelReviewInput,
+  parseCommitInput,
   parseFileScopedInput,
   parseGetSnapshotInput,
   parseNoInput,
   parseOpenRepositoryInput,
+  parsePathsInput,
   parseRemoveRepositoryInput,
   parseSaveDraftInput,
   parseSaveReviewInput,
@@ -44,7 +53,12 @@ const CHANNELS = {
   listAgents: 'branchroom:list-agents',
   startReview: 'branchroom:start-review',
   cancelReview: 'branchroom:cancel-review',
-  listRuns: 'branchroom:list-runs'
+  listRuns: 'branchroom:list-runs',
+  stageFiles: 'branchroom:stage-files',
+  unstageFiles: 'branchroom:unstage-files',
+  previewCommit: 'branchroom:preview-commit',
+  commitStaged: 'branchroom:commit-staged',
+  commitFiles: 'branchroom:commit-files'
 } as const;
 
 function ok<T>(data: T): Result<T> {
@@ -245,5 +259,50 @@ export function registerRepositoryHandlers(ipcMain: IpcMain, ctx: HandlerContext
       return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
     }
     return ok(await ctx.runManager.listRuns(parsed.value.repoId));
+  });
+
+  // BR-006：Git 写操作只由显式界面动作触发；这里只做转发与校验
+  const requireRoot = async (repoId: string): Promise<string | null> => ctx.registry.rootOf(repoId);
+
+  guard(CHANNELS.stageFiles, async (input) => {
+    const parsed = parsePathsInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = await requireRoot(parsed.value.repoId);
+    if (root === null) return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    await stageFiles(root, parsed.value.paths);
+    return ok(undefined);
+  });
+
+  guard(CHANNELS.unstageFiles, async (input) => {
+    const parsed = parsePathsInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = await requireRoot(parsed.value.repoId);
+    if (root === null) return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    await unstageFiles(root, parsed.value.paths);
+    return ok(undefined);
+  });
+
+  guard(CHANNELS.previewCommit, async (input) => {
+    const parsed = parseGetSnapshotInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = await requireRoot(parsed.value.repoId);
+    if (root === null) return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    return ok(await previewCommit(root));
+  });
+
+  guard(CHANNELS.commitStaged, async (input) => {
+    const parsed = parseCommitInput(input, false);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = await requireRoot(parsed.value.repoId);
+    if (root === null) return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    return ok(await commitStaged(root, parsed.value.message));
+  });
+
+  guard(CHANNELS.commitFiles, async (input) => {
+    const parsed = parseCommitInput(input, true);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = await requireRoot(parsed.value.repoId);
+    if (root === null) return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    return ok(await commitFiles(root, parsed.value.message, parsed.value.paths ?? []));
   });
 }

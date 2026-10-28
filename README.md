@@ -11,7 +11,7 @@
 | Claude Code 接手与可直接使用的开工提示词 | [接手说明](docs/HANDOFF-CLAUDE.md) |
 | 用户确认的需求与首版范围 | [产品需求](docs/PRD.md) |
 | 领域概念与状态约束 | [上下文](CONTEXT.md) |
-| 领域本体、关系、规则与交付图谱 | [项目图谱](docs/ONTOLOGY.md) |
+| 领域身份、审查语义与图谱草案 | [领域本体](docs/ONTOLOGY.md) |
 | 桌面应用架构与目录规划 | [架构](docs/ARCHITECTURE.md) |
 | IPC 与服务契约 | [接口契约](docs/CONTRACTS.md) |
 | 开发次序与验收 | [实施计划](docs/superpowers/plans/2026-10-28-first-desktop-slice.md) |
@@ -37,9 +37,16 @@ bun run verify:packaged  # 重新打包并强制验证 .app 真实启动（产�
 
 锁定版本：electron 45.0.0、electron-vite 6.0.0、vite 8.3.5、React 19.3.1、TypeScript 5.9.3、Vitest 5.0.5、Playwright 1.64.1、electron-builder 26.18.0（均 `--exact`，见 lockfile）。选型理由见 [ADR 0001](docs/adr/0001-desktop-stack.md)。
 
-当前能力边界：可选择本地目录并校验 Git 仓库身份；读取工作区相对 HEAD 的真实变更（未跟踪、已暂存、未暂存、删除、重命名、冲突），一次性构建一致快照（以 HEAD + status 深度核对保证期间变化会整体重试，不返回混合快照）；文件列表带 A/M/D/R/U 标记、审查状态图标与增删行数；修改文件为左右逐行对齐的双栏 Diff，新增/删除文件单栏，另有全文视图与手动刷新；二进制、符号链接、子模块、超限大文件不可审阅但会显示明确原因，不会消失。人工审查：按文件标记已审查/问题/重置，反馈草稿自动保存，全部绑定内容身份并持久化；内容变化派生“待复审”，仅移动暂存位置不失效；多仓库与 worktree 按根目录隔离。**Agent Review**：检测本机 Codex / Claude Code CLI（区分未安装/不兼容/可用），对整批或单文件发起真实审查（只读沙箱、stdin 传提示词、结构化输出 + 严格本地校验），意见区分 issue/verify 并定位到文件行，进行中可停止（终止整棵进程树），run 历史逐次保留，应用退出前清理进程；Claude 兼容问题已解决（保留用户 provider 配置），真实调用验证见 `bun scripts/real-agent-check.ts`。renderer 运行在 contextIsolation + sandbox 之下，只有 `window.branchroom` 上的 14 个类型化方法。**尚无** Git 写操作、意见采纳反馈闭环（BR-005）。
+当前能力边界：可选择本地目录并校验 Git 仓库身份；读取工作区相对 HEAD 的真实变更（未跟踪、已暂存、未暂存、删除、重命名、冲突），一次性构建一致快照（以 HEAD + status 深度核对保证期间变化会整体重试，不返回混合快照）；文件列表带 A/M/D/R/U 标记、审查状态图标与增删行数；修改文件为左右逐行对齐的双栏 Diff，新增/删除文件单栏，另有全文视图与手动刷新；二进制、符号链接、子模块、超限大文件不可审阅但会显示明确原因，不会消失。人工审查：按文件标记已审查/问题/重置，反馈草稿自动保存，全部绑定内容身份并持久化；内容变化派生“待复审”，仅移动暂存位置不失效；多仓库与 worktree 按根目录隔离。**Agent Review**：检测本机 Codex / Claude Code CLI（区分未安装/不兼容/可用），对整批、单文件或仅待复审文件发起真实审查（只读沙箱、stdin 传提示词、结构化输出 + 严格本地校验），意见区分 issue/verify、一击定位到行并展开依据，采纳仅生成反馈草稿（旧版本意见拦截），进行中可停止（终止整棵进程树），run 历史逐次保留，应用退出前清理进程；Claude 兼容问题已解决（保留用户 provider 配置），真实调用验证见 `bun scripts/real-agent-check.ts`。**暂存与提交（BR-006）**：按文件显式暂存/取消暂存、提交预览（文件与增删统计）、提交已暂存到当前分支、文件级提交（只提交所选文件当前内容）；必须填写提交信息，使用你自己的 Git 提交身份；无推送/远程/force 操作。renderer 运行在 contextIsolation + sandbox 之下，只有 `window.branchroom` 上的 19 个类型化方法。**尚无** 分支图/历史浏览（BR-007）、fetch/pull/push、hunk 级暂存。
 
 自动化说明：`tests/e2e` 通过环境变量 `BRANCHROOM_USER_DATA_DIR` 隔离 userData，并通过 Playwright 在主进程内替换系统目录对话框，生产代码不含测试后门。
+
+## 快速上手（使用打包好的应用）
+
+1. `bun run verify:packaged` 构建并验证 `dist/mac/Branchroom.app`（本机签名，未公证，仅本机使用）。
+2. 打开应用 → 「打开本地仓库…」选择你的仓库 → 查看变更 → 对需要第二双眼睛的改动点「审查全部变更」。
+3. 单击 Agent 意见定位到行；「采纳为反馈草稿」把意见变成反馈；修好后「刷新」→「复审待复审文件」。
+4. 审完的文件点「暂存」，填写提交信息后「提交已暂存」（或对单个文件用「提交所选文件」）。提交只写本地分支，不做任何远程操作。
 
 ## 参考原型（不是正式应用）
 

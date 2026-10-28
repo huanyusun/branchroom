@@ -1,803 +1,1167 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
+  "modelVersion": "0.2-draft",
   "asOf": "2026-10-28",
-  "scope": "Branchroom 领域本体及开发任务的静态知识图谱",
-  "formalism": "带证据的属性图；不是 OWL/RDF 推理本体",
-  "statusVocabulary": {
-    "conceptAndEdge": [
-      "implemented",
-      "specified",
-      "planned"
+  "scope": "Branchroom 的内容版本、审查行为、断言及适用性；含独立工程追溯层",
+  "formalism": "显式类/实例、关系域值域、值属性及文字约束；未转换为 OWL，未进行逻辑完备性证明",
+  "methodSources": [
+    "https://protege.stanford.edu/publications/ontology_development/ontology101-noy-mcguinness.html",
+    "https://www.w3.org/TR/owl-primer/"
+  ],
+  "ontology": {
+    "categories": {
+      "entity": "有持续身份的工作区、存储或行为主体",
+      "event": "在时间中发生的行为",
+      "information": "记录、比较、判断或断言的内容",
+      "value": "按值解释的内容表示，不表示持续实体"
+    },
+    "classes": [
+      {
+        "id": "RepositoryStore",
+        "label": "Git 共享存储",
+        "category": "entity",
+        "definition": "工作区引用的 Git 共享对象与引用存储。",
+        "identity": "当前项目用 commonGitDir 识别本地共享存储；不声称跨机器身份稳定。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/main/services/repositories.ts"
+        ]
+      },
+      {
+        "id": "Worktree",
+        "label": "仓库工作区",
+        "category": "entity",
+        "definition": "具有独立路径、HEAD、index 与工作区文件的本地 Git 工作区。",
+        "identity": "工作区身份不等于共享存储身份；当前 repoId 按根路径派生，移动后连续性未解决。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/main/services/repositories.ts"
+        ]
+      },
+      {
+        "id": "Actor",
+        "label": "行为承担者",
+        "category": "entity",
+        "definition": "在一次审查行为中承担责任的主体。",
+        "identity": "不凭 provider 字符串认定同一个实际调用主体。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md"
+        ]
+      },
+      {
+        "id": "HumanReviewer",
+        "label": "人工审查者",
+        "category": "entity",
+        "definition": "作出人工判断的人。",
+        "identity": "示例用局部 ID；当前产品未持久化用户身份。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md"
+        ],
+        "subClassOf": "Actor"
+      },
+      {
+        "id": "AgentInstallation",
+        "label": "Agent 安装",
+        "category": "entity",
+        "definition": "可供调用的本地 CLI 安装，不等于模型、provider 品牌或一次运行。",
+        "identity": "示例用局部安装 ID；实际 executable 和 version 仅为识别线索。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/main/agents/capabilities.ts"
+        ],
+        "subClassOf": "Actor"
+      },
+      {
+        "id": "ReviewActivity",
+        "label": "审查行为",
+        "category": "event",
+        "definition": "针对固定比较材料发生的审查过程。",
+        "identity": "每次发生分别识别；同材料同主体再次审查也不是同一次行为。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md"
+        ]
+      },
+      {
+        "id": "HumanReviewActivity",
+        "label": "人工审查行为",
+        "category": "event",
+        "definition": "人阅读材料并作出判断的事件。",
+        "identity": "一次判断行为；当前保存记录不能重建完整行为历史。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md"
+        ],
+        "subClassOf": "ReviewActivity"
+      },
+      {
+        "id": "AgentReviewRun",
+        "label": "Agent 审查运行",
+        "category": "event",
+        "definition": "一次以固定快照选定比较为输入的 CLI 审查过程。",
+        "identity": "runId 标识一次发生；重试创建新的 run。",
+        "basis": "project-contract",
+        "sources": [
+          "src/main/services/review-runs.ts"
+        ],
+        "subClassOf": "ReviewActivity"
+      },
+      {
+        "id": "Snapshot",
+        "label": "快照记录",
+        "category": "information",
+        "definition": "记录特定工作区一次捕获的基线、时间与观察结果。",
+        "identity": "snapshotId 标识捕获记录；内容相同的两次捕获仍可有不同 ID。",
+        "basis": "project-contract",
+        "sources": [
+          "src/main/services/snapshots.ts"
+        ]
+      },
+      {
+        "id": "ContentValue",
+        "label": "内容值",
+        "category": "value",
+        "definition": "带状态标记的文本内容值、缺席值或不可获得值。",
+        "identity": "text 按文本相等；absent 与空文本不同；unavailable 不能证明内容相等。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/shared/contracts.ts",
+          "src/main/services/snapshots.ts"
+        ]
+      },
+      {
+        "id": "FileObservation",
+        "label": "文件观察记录",
+        "category": "information",
+        "definition": "某快照一侧对某路径的观察；观察可能是存在、缺席或不可读取。",
+        "identity": "snapshot + side + path；不是跨时间文件实体，也不是磁盘 inode。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/main/services/snapshots.ts"
+        ]
+      },
+      {
+        "id": "ChangeComparison",
+        "label": "变更比较记录",
+        "category": "information",
+        "definition": "同一快照内基线观察与当前观察的配对；是审查材料的核心单位。",
+        "identity": "记录身份为 snapshotId + 当前 fileId；内容等价须另按策略比较。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/shared/contracts.ts",
+          "src/main/services/snapshots.ts"
+        ]
+      },
+      {
+        "id": "HumanJudgment",
+        "label": "人工判断内容",
+        "category": "information",
+        "definition": "人在一次审查中表达的 reviewed 或 issue 判断。",
+        "identity": "语义上属于一次人工审查行为；当前 repoId + fileId 存储槽不等于完整判断历史。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/main/services/review-store.ts"
+        ]
+      },
+      {
+        "id": "AgentReport",
+        "label": "Agent 报告",
+        "category": "information",
+        "definition": "一次运行产生的覆盖声明、局限与意见集合。",
+        "identity": "属于一次 run；schema 有效不能证明其论断真实。",
+        "basis": "project-contract",
+        "sources": [
+          "src/main/agents/report.ts"
+        ]
+      },
+      {
+        "id": "Finding",
+        "label": "Agent 问题断言",
+        "category": "information",
+        "definition": "Agent 对比较材料提出的 issue 或 verify 断言。",
+        "identity": "runId + finding.id；同文案不构成同一条断言。",
+        "basis": "project-contract",
+        "sources": [
+          "src/shared/contracts.ts",
+          "src/main/agents/report.ts"
+        ]
+      },
+      {
+        "id": "EvidenceItem",
+        "label": "证据材料",
+        "category": "information",
+        "definition": "断言所引用的片段、外部资料或运行记录。",
+        "identity": "证据出处与内容均需保留；引用存在不等于支持充分。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/shared/contracts.ts"
+        ]
+      },
+      {
+        "id": "FeedbackDraft",
+        "label": "反馈草稿",
+        "category": "information",
+        "definition": "供人确认的修复反馈文本。",
+        "identity": "草稿文档可修订；当前存储按 repoId + fileId 覆写，未提供版本历史。",
+        "basis": "project-contract",
+        "sources": [
+          "src/main/services/review-store.ts",
+          "src/renderer/features/agent-review/AgentPanel.tsx"
+        ]
+      },
+      {
+        "id": "ApplicabilityAssessment",
+        "label": "适用性评估记录",
+        "category": "information",
+        "definition": "在特定时刻按特定策略，判断旧判断或断言能否直接用于目标比较。",
+        "identity": "subject + targetComparison + policy + evaluatedAt；结论为 applicable / stale / unknown。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "src/main/services/review-store.ts",
+          "src/renderer/features/agent-review/AgentPanel.tsx"
+        ]
+      }
     ],
-    "task": [
-      "done",
-      "ready",
-      "backlog"
+    "objectProperties": [
+      {
+        "id": "usesStore",
+        "domain": [
+          "Worktree"
+        ],
+        "range": [
+          "RepositoryStore"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": "多个 worktree 可以共享同一存储，不能因此合并为同一工作区。"
+      },
+      {
+        "id": "recordsWorktree",
+        "domain": [
+          "Snapshot"
+        ],
+        "range": [
+          "Worktree"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "inSnapshot",
+        "domain": [
+          "FileObservation",
+          "ChangeComparison"
+        ],
+        "range": [
+          "Snapshot"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "observedContent",
+        "domain": [
+          "FileObservation"
+        ],
+        "range": [
+          "ContentValue"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "baseObservation",
+        "domain": [
+          "ChangeComparison"
+        ],
+        "range": [
+          "FileObservation"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "currentObservation",
+        "domain": [
+          "ChangeComparison"
+        ],
+        "range": [
+          "FileObservation"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "performedBy",
+        "domain": [
+          "ReviewActivity"
+        ],
+        "range": [
+          "Actor"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": "主体未知时为知识缺口，不能从修改内容猜测。"
+      },
+      {
+        "id": "examines",
+        "domain": [
+          "ReviewActivity"
+        ],
+        "range": [
+          "ChangeComparison"
+        ],
+        "min": 1,
+        "max": null,
+        "meaning": ""
+      },
+      {
+        "id": "yieldsJudgment",
+        "domain": [
+          "HumanReviewActivity"
+        ],
+        "range": [
+          "HumanJudgment"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "judges",
+        "domain": [
+          "HumanJudgment"
+        ],
+        "range": [
+          "ChangeComparison"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "producesReport",
+        "domain": [
+          "AgentReviewRun"
+        ],
+        "range": [
+          "AgentReport"
+        ],
+        "min": 0,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "covers",
+        "domain": [
+          "AgentReport"
+        ],
+        "range": [
+          "ChangeComparison"
+        ],
+        "min": 1,
+        "max": null,
+        "meaning": "报告声称完整审查且经结构校验的范围；不等于独立验证其实际理解。"
+      },
+      {
+        "id": "assertedIn",
+        "domain": [
+          "Finding"
+        ],
+        "range": [
+          "AgentReport"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "aboutComparison",
+        "domain": [
+          "Finding"
+        ],
+        "range": [
+          "ChangeComparison"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "cites",
+        "domain": [
+          "Finding"
+        ],
+        "range": [
+          "EvidenceItem"
+        ],
+        "min": 0,
+        "max": null,
+        "meaning": "项目契约要求 evidence 文本；结构化证据实体是本体提案。"
+      },
+      {
+        "id": "derivedFrom",
+        "domain": [
+          "FeedbackDraft"
+        ],
+        "range": [
+          "Finding"
+        ],
+        "min": 0,
+        "max": null,
+        "meaning": "采纳建立来源关系，不把草稿与断言认作同一个对象。"
+      },
+      {
+        "id": "targets",
+        "domain": [
+          "FeedbackDraft"
+        ],
+        "range": [
+          "ChangeComparison"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "assesses",
+        "domain": [
+          "ApplicabilityAssessment"
+        ],
+        "range": [
+          "HumanJudgment",
+          "Finding"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      },
+      {
+        "id": "targetComparison",
+        "domain": [
+          "ApplicabilityAssessment"
+        ],
+        "range": [
+          "ChangeComparison"
+        ],
+        "min": 1,
+        "max": 1,
+        "meaning": ""
+      }
+    ],
+    "dataProperties": [
+      {
+        "id": "root",
+        "domain": [
+          "Worktree"
+        ],
+        "datatype": "string",
+        "meaning": "工作区路径是定位属性；当前实现也据此派生 ID。",
+        "required": false
+      },
+      {
+        "id": "headRef",
+        "domain": [
+          "Snapshot"
+        ],
+        "datatype": "string",
+        "meaning": "捕获时的 HEAD；示例 unborn 明确表示无首个提交。",
+        "required": true
+      },
+      {
+        "id": "capturedAt",
+        "domain": [
+          "Snapshot"
+        ],
+        "datatype": "datetime",
+        "meaning": "快照捕获时间。",
+        "required": true
+      },
+      {
+        "id": "path",
+        "domain": [
+          "FileObservation"
+        ],
+        "datatype": "string",
+        "meaning": "仓库相对路径；不是全局文件身份。",
+        "required": true
+      },
+      {
+        "id": "side",
+        "domain": [
+          "FileObservation"
+        ],
+        "datatype": "string",
+        "meaning": "观察所属的比较侧。",
+        "required": true,
+        "allowedValues": [
+          "base",
+          "current"
+        ]
+      },
+      {
+        "id": "contentKind",
+        "domain": [
+          "ContentValue"
+        ],
+        "datatype": "string",
+        "meaning": "内容状态；不可读不等于不存在。",
+        "required": true,
+        "allowedValues": [
+          "text",
+          "absent",
+          "unavailable"
+        ]
+      },
+      {
+        "id": "text",
+        "domain": [
+          "ContentValue"
+        ],
+        "datatype": "string",
+        "meaning": "仅 contentKind=text 可有文本，包括空字符串。",
+        "required": false
+      },
+      {
+        "id": "reason",
+        "domain": [
+          "ContentValue"
+        ],
+        "datatype": "string",
+        "meaning": "contentKind=unavailable 时的具体原因。",
+        "required": false
+      },
+      {
+        "id": "indexStatus",
+        "domain": [
+          "ChangeComparison"
+        ],
+        "datatype": "string",
+        "meaning": "Git index 状态值，与人工结论独立。",
+        "required": false
+      },
+      {
+        "id": "worktreeStatus",
+        "domain": [
+          "ChangeComparison"
+        ],
+        "datatype": "string",
+        "meaning": "Git 工作区状态值。",
+        "required": false
+      },
+      {
+        "id": "fingerprint",
+        "domain": [
+          "ChangeComparison"
+        ],
+        "datatype": "string",
+        "meaning": "现实现包含工作区、HEAD、路径与内容摘要；仅是比较令牌。",
+        "required": false
+      },
+      {
+        "id": "contentIdentity",
+        "domain": [
+          "ChangeComparison"
+        ],
+        "datatype": "string",
+        "meaning": "现实现的双侧内容摘要；不构成跨仓库实体身份。",
+        "required": false
+      },
+      {
+        "id": "judgment",
+        "domain": [
+          "HumanJudgment"
+        ],
+        "datatype": "string",
+        "meaning": "人工判断内容；pending 与 recheck 不属于已表达判断。",
+        "required": true,
+        "allowedValues": [
+          "reviewed",
+          "issue"
+        ]
+      },
+      {
+        "id": "runStatus",
+        "domain": [
+          "AgentReviewRun"
+        ],
+        "datatype": "string",
+        "meaning": "运行生命周期状态。",
+        "required": true,
+        "allowedValues": [
+          "queued",
+          "running",
+          "succeeded",
+          "failed",
+          "cancelled",
+          "interrupted"
+        ]
+      },
+      {
+        "id": "kind",
+        "domain": [
+          "Finding"
+        ],
+        "datatype": "string",
+        "meaning": "断言的证据要求分类，不能据此推出断言为真。",
+        "required": true,
+        "allowedValues": [
+          "issue",
+          "verify"
+        ]
+      },
+      {
+        "id": "claim",
+        "domain": [
+          "Finding"
+        ],
+        "datatype": "string",
+        "meaning": "可被质疑、核实的问题命题。",
+        "required": true
+      },
+      {
+        "id": "locationSide",
+        "domain": [
+          "Finding"
+        ],
+        "datatype": "string",
+        "meaning": "定位侧，与行范围及目标比较共同解释。",
+        "required": true,
+        "allowedValues": [
+          "base",
+          "current"
+        ]
+      },
+      {
+        "id": "startLine",
+        "domain": [
+          "Finding"
+        ],
+        "datatype": "integer",
+        "meaning": "从 1 开始的行号。",
+        "required": true
+      },
+      {
+        "id": "endLine",
+        "domain": [
+          "Finding"
+        ],
+        "datatype": "integer",
+        "meaning": "不小于 startLine。",
+        "required": true
+      },
+      {
+        "id": "disposition",
+        "domain": [
+          "Finding"
+        ],
+        "datatype": "string",
+        "meaning": "人的处理决定，不等于问题真假或已经修复。",
+        "required": false,
+        "allowedValues": [
+          "open",
+          "accepted",
+          "dismissed"
+        ]
+      },
+      {
+        "id": "body",
+        "domain": [
+          "EvidenceItem",
+          "FeedbackDraft"
+        ],
+        "datatype": "string",
+        "meaning": "证据文本或反馈内容。",
+        "required": true
+      },
+      {
+        "id": "result",
+        "domain": [
+          "ApplicabilityAssessment"
+        ],
+        "datatype": "string",
+        "meaning": "相对目标版本与策略的适用性结果。",
+        "required": true,
+        "allowedValues": [
+          "applicable",
+          "stale",
+          "unknown"
+        ]
+      },
+      {
+        "id": "policy",
+        "domain": [
+          "ApplicabilityAssessment"
+        ],
+        "datatype": "string",
+        "meaning": "使用的内容/路径/基线匹配规则。",
+        "required": true
+      },
+      {
+        "id": "evaluatedAt",
+        "domain": [
+          "ApplicabilityAssessment"
+        ],
+        "datatype": "datetime",
+        "meaning": "评估发生时间。",
+        "required": true
+      }
+    ],
+    "constraints": [
+      {
+        "id": "O1",
+        "kind": "identity",
+        "statement": "相同内容不推出相同 Snapshot、ReviewActivity 或 Finding；相同路径不推出跨 worktree 同一文件。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O2",
+        "kind": "dependency",
+        "statement": "比较两侧观察必须同属比较的快照，side 分别为 base/current。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O3",
+        "kind": "value",
+        "statement": "absent 不等于 text(空串)，unavailable 不能作为内容相等的证明；缺失字段也不能当作 absent。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O4",
+        "kind": "epistemic",
+        "statement": "Finding 记录一次问题断言；schema 校验和 kind=issue 不蕴含命题为真，accepted 不蕴含修复完成。",
+        "basis": "project-contract",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O5",
+        "kind": "temporal",
+        "statement": "适用性必须指明旧判断/断言、目标比较、策略和评估时间；历史断言不因新比较出现而被改写。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O6",
+        "kind": "authority",
+        "statement": "只有人工行为可产生 HumanJudgment；Agent 成功、Git 暂存、测试结果不蕴含 reviewed。",
+        "basis": "project-contract",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O7",
+        "kind": "coverage",
+        "statement": "零意见只可相对于成功运行、有效报告和显式覆盖范围解释；不得推广到过滤、跳过或未提供的材料。",
+        "basis": "project-contract",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O8",
+        "kind": "workflow",
+        "statement": "采纳产生 FeedbackDraft 的来源关系；保存草稿、正式判断、修复、Git 写入是不同事件。",
+        "basis": "project-contract",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O9",
+        "kind": "unknown",
+        "statement": "知识图谱缺少事实时保持未知；示例完整性校验不等于对整个领域采用封闭世界假设。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      },
+      {
+        "id": "O10",
+        "kind": "non-equivalence",
+        "statement": "Fingerprint 和 ContentIdentity 是不同政策所用的值；不得定义为对象身份的充分条件。",
+        "basis": "modeling-proposal",
+        "sources": [
+          "CONTEXT.md",
+          "docs/CONTRACTS.md"
+        ]
+      }
+    ],
+    "competencyQuestions": [
+      {
+        "id": "CQ1",
+        "question": "同一存储下两个 worktree 的同路径同文本能否共享人工结论？",
+        "expectedAnswer": "不能：工作区是判断适用性的隔离边界。",
+        "scenarios": [
+          "S-worktree"
+        ]
+      },
+      {
+        "id": "CQ2",
+        "question": "stage/unstage 后比较材料未变，旧判断还适用吗？",
+        "expectedAnswer": "适用性不因暂存位置变化而改变。",
+        "scenarios": [
+          "S-stage"
+        ]
+      },
+      {
+        "id": "CQ3",
+        "question": "当前文本相同，但基线文本改变，是否仍是同一审查材料？",
+        "expectedAnswer": "不是；变更比较已经改变。",
+        "scenarios": [
+          "S-baseline"
+        ]
+      },
+      {
+        "id": "CQ4",
+        "question": "HEAD 变了但双侧内容不变，人工判断与 Agent 意见是否同样失效？",
+        "expectedAnswer": "不必相同：当前人工策略仍适用，Agent 指纹策略判 stale。",
+        "scenarios": [
+          "S-head"
+        ]
+      },
+      {
+        "id": "CQ5",
+        "question": "重命名能否证明文件连续身份并自动迁移审查结论？",
+        "expectedAnswer": "不能；当前路径键策略不自动迁移，连续身份规则尚待决定。",
+        "scenarios": [
+          "S-rename"
+        ]
+      },
+      {
+        "id": "CQ6",
+        "question": "没有文件、空文件与读不到文件能否当作同一内容？",
+        "expectedAnswer": "不能；未知内容不足以证明可直接复用。",
+        "scenarios": [
+          "S-absent-empty",
+          "S-unavailable"
+        ]
+      },
+      {
+        "id": "CQ7",
+        "question": "合法 issue、采纳、测试通过能否推出问题已证实或人工已审查？",
+        "expectedAnswer": "均不能；断言、证据、处理决定与人工判断是不同事实。",
+        "scenarios": [
+          "S-claim"
+        ]
+      },
+      {
+        "id": "CQ8",
+        "question": "过期是旧意见固有属性吗？",
+        "expectedAnswer": "不是；对不同目标比较、时刻和策略可得到不同评估。",
+        "scenarios": [
+          "S-restored"
+        ]
+      },
+      {
+        "id": "CQ9",
+        "question": "能否从一次成功零意见报告推出所有变更无问题？",
+        "expectedAnswer": "不能；只有固定且完整校验覆盖范围内的零意见陈述。",
+        "scenarios": [
+          "S-coverage"
+        ]
+      },
+      {
+        "id": "CQ10",
+        "question": "两个 run 给出相同文案，是同一条 Finding 吗？",
+        "expectedAnswer": "不是；分别归属各自运行与报告。",
+        "scenarios": [
+          "S-repeated"
+        ]
+      }
+    ],
+    "applicabilityPolicies": [
+      {
+        "id": "human-content-v1-tagged",
+        "basis": "modeling-proposal",
+        "conditions": [
+          "同一工作区",
+          "两侧观察路径分别相同",
+          "两侧带状态内容值分别已知且相同"
+        ],
+        "ignored": [
+          "HEAD 引用身份",
+          "indexStatus",
+          "worktreeStatus"
+        ],
+        "unknownWhen": "任何一侧 unavailable 或目标信息不足",
+        "implementationDifference": "近似现有人工内容匹配规则，但显式区分 absent/text-empty，并保留 unknown；不是现有函数的逐字模拟。"
+      },
+      {
+        "id": "agent-fingerprint-v1-tagged",
+        "basis": "modeling-proposal",
+        "conditions": [
+          "满足 human-content-v1-tagged 的已知匹配条件",
+          "HEAD 引用相同"
+        ],
+        "ignored": [
+          "indexStatus",
+          "worktreeStatus"
+        ],
+        "unknownWhen": "任何一侧 unavailable 或目标信息不足",
+        "implementationDifference": "对应现有指纹包含 HEAD 的政策方向；这里直接比较已知值，不使用示例 hash，也不模拟所有 null 编码细节。"
+      }
     ]
   },
-  "nodes": [
-    {
-      "id": "Repository",
-      "label": "仓库工作区",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "用户打开的本地 Git 工作区；linked worktree 按根目录隔离",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/services/repositories.ts"
-      ]
-    },
-    {
-      "id": "ReviewScope",
-      "label": "审查范围",
-      "kind": "concept",
-      "status": "specified",
-      "definition": "HEAD 到当前工作区；包括已暂存、未暂存及未跟踪内容",
-      "sources": [
-        "CONTEXT.md",
-        "docs/PRD.md"
-      ]
-    },
-    {
-      "id": "Snapshot",
-      "label": "冻结快照",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "一次一致读取的 HEAD 与变更文件集合；不是提交",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/services/snapshots.ts"
-      ]
-    },
-    {
-      "id": "ChangeFile",
-      "label": "快照文件变更",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "快照中的文件版本，带路径、双侧内容、Git 状态及可审阅原因",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/services/snapshots.ts"
-      ]
-    },
-    {
-      "id": "Fingerprint",
-      "label": "快照内容指纹",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "SHA-256 绑定 repoId、HEAD、路径及基线/当前内容摘要；不含暂存状态",
-      "sources": [
-        "src/main/services/snapshots.ts"
-      ]
-    },
-    {
-      "id": "ContentIdentity",
-      "label": "人工审查内容身份",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "基线与当前内容的 SHA-256；仓库和路径由存储外层隔离",
-      "sources": [
-        "src/main/services/review-store.ts"
-      ]
-    },
-    {
-      "id": "HumanReview",
-      "label": "人工审查结论",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "人为保存 reviewed 或 issue；pending 为无记录，recheck 为内容不匹配派生态",
-      "sources": [
-        "src/main/services/review-store.ts",
-        "src/shared/contracts.ts"
-      ]
-    },
-    {
-      "id": "FeedbackDraft",
-      "label": "反馈草稿",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "绑定文件内容身份的反馈文本；草稿保存与正式结论不同",
-      "sources": [
-        "src/main/services/review-service.ts",
-        "src/shared/contracts.ts"
-      ]
-    },
-    {
-      "id": "ReviewRun",
-      "label": "Agent 审查任务",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "对单一冻结快照中选定可审阅文件的一次 CLI 调用",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/services/review-runs.ts"
-      ]
-    },
-    {
-      "id": "AgentCapability",
-      "label": "Agent 能力",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "codex/claude 的可执行路径、版本与诊断状态",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/agents/capabilities.ts"
-      ]
-    },
-    {
-      "id": "AgentReport",
-      "label": "审查报告",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "经过本地校验的覆盖范围、限制与意见",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/agents/report.ts"
-      ]
-    },
-    {
-      "id": "Finding",
-      "label": "Agent 意见",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "issue 或 verify 建议，带证据、优先级及内容指纹",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/agents/report.ts"
-      ]
-    },
-    {
-      "id": "Location",
-      "label": "意见定位",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "fileId、side 与行号范围；当前适配器仅生成 current",
-      "sources": [
-        "src/shared/contracts.ts",
-        "src/main/agents/report.ts"
-      ]
-    },
-    {
-      "id": "Staging",
-      "label": "Git 暂存状态",
-      "kind": "concept",
-      "status": "implemented",
-      "definition": "indexStatus/worktreeStatus 为读取属性；写操作尚未实现",
-      "sources": [
-        "src/shared/contracts.ts",
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "ChangeGroup",
-      "label": "意图分组",
-      "kind": "concept",
-      "status": "planned",
-      "definition": "按修改意图跨文件组织；Agent 只建议分组",
-      "sources": [
-        "CONTEXT.md",
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "Provenance",
-      "label": "修改来源",
-      "kind": "concept",
-      "status": "specified",
-      "definition": "不能仅凭 Git 变化推断 Claude/Codex 归属；未知需保持 unknown",
-      "sources": [
-        "CONTEXT.md"
-      ]
-    },
-    {
-      "id": "GitWrite",
-      "label": "显式 Git 写操作",
-      "kind": "concept",
-      "status": "planned",
-      "definition": "暂存、取消暂存及提交，只由明确产品操作触发",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "FeedbackLoop",
-      "label": "意见采纳与复审闭环",
-      "kind": "concept",
-      "status": "planned",
-      "definition": "采纳形成草稿、人工保存、外部修复、刷新与复审",
-      "sources": [
-        "docs/BACKLOG.md",
-        "docs/ACCEPTANCE.md"
-      ]
-    },
-    {
-      "id": "BR-001",
-      "label": "BR-001",
-      "kind": "task",
-      "status": "done",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-002",
-      "label": "BR-002",
-      "kind": "task",
-      "status": "done",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-003",
-      "label": "BR-003",
-      "kind": "task",
-      "status": "done",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-004",
-      "label": "BR-004",
-      "kind": "task",
-      "status": "done",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-005",
-      "label": "BR-005",
-      "kind": "task",
-      "status": "ready",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-006",
-      "label": "BR-006",
-      "kind": "task",
-      "status": "backlog",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-007",
-      "label": "BR-007",
-      "kind": "task",
-      "status": "backlog",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-008",
-      "label": "BR-008",
-      "kind": "task",
-      "status": "backlog",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-009",
-      "label": "BR-009",
-      "kind": "task",
-      "status": "backlog",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "BR-010",
-      "label": "BR-010",
-      "kind": "task",
-      "status": "backlog",
-      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
-      "sources": [
-        "docs/BACKLOG.md"
-      ]
-    }
-  ],
-  "edges": [
-    {
-      "source": "Repository",
-      "relation": "hasSnapshot",
-      "target": "Snapshot",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "0..*"
-    },
-    {
-      "source": "Snapshot",
-      "relation": "realizesScope",
-      "target": "ReviewScope",
-      "status": "specified",
-      "evidence": [
-        "CONTEXT.md"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "Snapshot",
-      "relation": "contains",
-      "target": "ChangeFile",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "0..*"
-    },
-    {
-      "source": "ChangeFile",
-      "relation": "identifiedBy",
-      "target": "Fingerprint",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/snapshots.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "ChangeFile",
-      "relation": "comparedBy",
-      "target": "ContentIdentity",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/review-store.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "ChangeFile",
-      "relation": "hasStaging",
-      "target": "Staging",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "HumanReview",
-      "relation": "judges",
-      "target": "ChangeFile",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/review-service.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "HumanReview",
-      "relation": "boundTo",
-      "target": "ContentIdentity",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/review-store.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "FeedbackDraft",
-      "relation": "boundTo",
-      "target": "ContentIdentity",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/review-service.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "FeedbackDraft",
-      "relation": "describes",
-      "target": "ChangeFile",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/review-service.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "Repository",
-      "relation": "hasRun",
-      "target": "ReviewRun",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "0..*"
-    },
-    {
-      "source": "ReviewRun",
-      "relation": "reviews",
-      "target": "Snapshot",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "ReviewRun",
-      "relation": "selects",
-      "target": "ChangeFile",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/review-runs.ts"
-      ],
-      "cardinality": "1..*"
-    },
-    {
-      "source": "ReviewRun",
-      "relation": "uses",
-      "target": "AgentCapability",
-      "status": "implemented",
-      "evidence": [
-        "src/main/services/review-runs.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "ReviewRun",
-      "relation": "produces",
-      "target": "AgentReport",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "0..1"
-    },
-    {
-      "source": "AgentReport",
-      "relation": "contains",
-      "target": "Finding",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "0..*"
-    },
-    {
-      "source": "AgentReport",
-      "relation": "covers",
-      "target": "ChangeFile",
-      "status": "implemented",
-      "evidence": [
-        "src/main/agents/report.ts"
-      ],
-      "cardinality": "1..*"
-    },
-    {
-      "source": "Finding",
-      "relation": "locatedAt",
-      "target": "Location",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "Location",
-      "relation": "pointsTo",
-      "target": "ChangeFile",
-      "status": "implemented",
-      "evidence": [
-        "src/shared/contracts.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "Finding",
-      "relation": "boundTo",
-      "target": "Fingerprint",
-      "status": "implemented",
-      "evidence": [
-        "src/main/agents/report.ts"
-      ],
-      "cardinality": "1"
-    },
-    {
-      "source": "Finding",
-      "relation": "adoptedAs",
-      "target": "FeedbackDraft",
-      "status": "planned",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "FeedbackLoop",
-      "relation": "uses",
-      "target": "FeedbackDraft",
-      "status": "planned",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "FeedbackLoop",
-      "relation": "startsNew",
-      "target": "ReviewRun",
-      "status": "planned",
-      "evidence": [
-        "docs/PRD.md"
-      ]
-    },
-    {
-      "source": "ChangeGroup",
-      "relation": "groups",
-      "target": "ChangeFile",
-      "status": "planned",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ],
-      "cardinality": "1..*"
-    },
-    {
-      "source": "ChangeFile",
-      "relation": "hasProvenance",
-      "target": "Provenance",
-      "status": "specified",
-      "evidence": [
-        "CONTEXT.md"
-      ]
-    },
-    {
-      "source": "GitWrite",
-      "relation": "changes",
-      "target": "Staging",
-      "status": "planned",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-002",
-      "relation": "dependsOn",
-      "target": "BR-001",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-003",
-      "relation": "dependsOn",
-      "target": "BR-002",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-004",
-      "relation": "dependsOn",
-      "target": "BR-002",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-005",
-      "relation": "dependsOn",
-      "target": "BR-003",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-005",
-      "relation": "dependsOn",
-      "target": "BR-004",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-006",
-      "relation": "dependsOn",
-      "target": "BR-005",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-007",
-      "relation": "dependsOn",
-      "target": "BR-006",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-008",
-      "relation": "dependsOn",
-      "target": "BR-007",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-009",
-      "relation": "dependsOn",
-      "target": "BR-005",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-010",
-      "relation": "dependsOn",
-      "target": "BR-005",
-      "status": "specified",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-002",
-      "relation": "delivers",
-      "target": "Snapshot",
-      "status": "implemented",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-003",
-      "relation": "delivers",
-      "target": "HumanReview",
-      "status": "implemented",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-003",
-      "relation": "delivers",
-      "target": "FeedbackDraft",
-      "status": "implemented",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-004",
-      "relation": "delivers",
-      "target": "ReviewRun",
-      "status": "implemented",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-004",
-      "relation": "delivers",
-      "target": "Finding",
-      "status": "implemented",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-005",
-      "relation": "delivers",
-      "target": "FeedbackLoop",
-      "status": "planned",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-006",
-      "relation": "delivers",
-      "target": "GitWrite",
-      "status": "planned",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "source": "BR-009",
-      "relation": "delivers",
-      "target": "ChangeGroup",
-      "status": "planned",
-      "evidence": [
-        "docs/BACKLOG.md"
-      ]
-    }
-  ],
-  "constraints": [
-    {
-      "id": "R1",
-      "statement": "Agent 成功、测试通过、已暂存均不能推导人工 reviewed。",
-      "evidence": [
-        "CONTEXT.md"
-      ]
-    },
-    {
-      "id": "R2",
-      "statement": "只改变暂存位置不使人工结论失效；双侧内容变化使已有结论派生 recheck。",
-      "evidence": [
-        "src/main/services/review-store.ts"
-      ]
-    },
-    {
-      "id": "R3",
-      "statement": "无具体问题只适用于 succeeded 且范围覆盖完整、报告有效、findings 为空的任务；不代表所有风险已排除。",
-      "evidence": [
-        "CONTEXT.md",
-        "src/main/agents/report.ts"
-      ]
-    },
-    {
-      "id": "R4",
-      "statement": "旧意见需按当前内容判定 stale，禁止直接采纳；历史 run 不覆盖。stale 采纳闭环仍属 BR-005。",
-      "evidence": [
-        "docs/CONTRACTS.md",
-        "docs/BACKLOG.md"
-      ]
-    },
-    {
-      "id": "R5",
-      "statement": "保存结论或草稿先校验快照指纹与磁盘内容身份；失败返回 content_changed，不能套用到新内容。",
-      "evidence": [
-        "src/main/services/review-service.ts"
-      ]
-    },
-    {
-      "id": "R6",
-      "statement": "issue 有输入证据支持；verify 需外部依据。二者都不是人的审查结论。",
-      "evidence": [
-        "CONTEXT.md",
-        "src/main/agents/report.ts"
-      ]
-    },
-    {
-      "id": "R7",
-      "statement": "快照读取不一致重试，耗尽返回 snapshot_changed；不可审阅文件保留明确原因。",
-      "evidence": [
-        "src/main/services/snapshots.ts"
-      ]
-    },
-    {
-      "id": "R8",
-      "statement": "取消及退出清理自己创建的 CLI 进程树；重启遗留任务为 interrupted，不自动重跑。",
-      "evidence": [
-        "src/main/services/review-runs.ts",
-        "src/main/agents/runner.ts"
-      ]
-    },
-    {
-      "id": "R9",
-      "statement": "Agent Review 不写用户仓库；Git 写入只能由明确产品操作触发。",
-      "evidence": [
-        "AGENTS.md",
-        "docs/ARCHITECTURE.md"
-      ]
-    }
-  ]
+  "engineering": {
+    "note": "这里记录实现映射和实际任务实例，不把实现状态当作领域类的本质属性。任务状态是本次阅读时的记录，非自动同步。",
+    "tasks": [
+      {
+        "id": "BR-001",
+        "type": "EngineeringTask",
+        "status": "done",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-002",
+        "type": "EngineeringTask",
+        "status": "done",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-003",
+        "type": "EngineeringTask",
+        "status": "done",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-004",
+        "type": "EngineeringTask",
+        "status": "done",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-005",
+        "type": "EngineeringTask",
+        "status": "in-progress",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-006",
+        "type": "EngineeringTask",
+        "status": "backlog",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-007",
+        "type": "EngineeringTask",
+        "status": "backlog",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-008",
+        "type": "EngineeringTask",
+        "status": "backlog",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-009",
+        "type": "EngineeringTask",
+        "status": "backlog",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "id": "BR-010",
+        "type": "EngineeringTask",
+        "status": "backlog",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      }
+    ],
+    "taskDependencies": [
+      {
+        "task": "BR-002",
+        "dependsOn": "BR-001",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-003",
+        "dependsOn": "BR-002",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-004",
+        "dependsOn": "BR-002",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-005",
+        "dependsOn": "BR-003",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-005",
+        "dependsOn": "BR-004",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-006",
+        "dependsOn": "BR-005",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-007",
+        "dependsOn": "BR-006",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-008",
+        "dependsOn": "BR-007",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-009",
+        "dependsOn": "BR-005",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      },
+      {
+        "task": "BR-010",
+        "dependsOn": "BR-005",
+        "sources": [
+          "docs/BACKLOG.md"
+        ]
+      }
+    ],
+    "mappings": [
+      {
+        "classes": [
+          "Worktree",
+          "RepositoryStore"
+        ],
+        "representation": "Repository 合并表示工作区与共享 Git 路径",
+        "sources": [
+          "src/shared/contracts.ts",
+          "src/main/services/repositories.ts"
+        ],
+        "limits": "无跨路径移动身份；不新增生产实体。"
+      },
+      {
+        "classes": [
+          "FileObservation",
+          "ContentValue",
+          "ChangeComparison"
+        ],
+        "representation": "ChangeFile 将观察、双侧内容、比较与状态合并",
+        "sources": [
+          "src/shared/contracts.ts",
+          "src/main/services/snapshots.ts"
+        ],
+        "limits": "null 复用为缺席或不可读取；须结合 kind/reviewable/unavailableReason，不能仅按 null 解释。"
+      },
+      {
+        "classes": [
+          "HumanReviewActivity",
+          "HumanJudgment"
+        ],
+        "representation": "ReviewService.saveReview 与 ReviewEntry",
+        "sources": [
+          "src/main/services/review-service.ts",
+          "src/main/services/review-store.ts"
+        ],
+        "limits": "保存行为与判断未分别持久化；记录按文件覆写，无完整人工历史。"
+      },
+      {
+        "classes": [
+          "AgentReviewRun",
+          "AgentReport",
+          "Finding"
+        ],
+        "representation": "ReviewRun / AgentReport / Finding",
+        "sources": [
+          "src/main/services/review-runs.ts",
+          "src/main/agents/report.ts"
+        ],
+        "limits": "报告当前只产生 current 定位；结构和覆盖合法不保证命题真实。"
+      },
+      {
+        "classes": [
+          "ApplicabilityAssessment"
+        ],
+        "representation": "applyReviewStates 与 AgentPanel.isStale",
+        "sources": [
+          "src/main/services/review-store.ts",
+          "src/renderer/features/agent-review/AgentPanel.tsx"
+        ],
+        "limits": "当前是即时布尔/状态派生，未保存策略、时间和 unknown 评估记录。"
+      },
+      {
+        "classes": [
+          "FeedbackDraft"
+        ],
+        "representation": "采纳为反馈草稿通过 saveDraft 保存",
+        "sources": [
+          "src/renderer/features/agent-review/AgentPanel.tsx",
+          "src/main/services/review-store.ts",
+          "docs/BACKLOG.md"
+        ],
+        "limits": "BR-005 机制已存在，三轮真实试用待完成；derivedFrom 来源关系尚未结构化持久化。"
+      }
+    ]
+  }
 }

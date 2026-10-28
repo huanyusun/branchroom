@@ -180,6 +180,8 @@ test.describe('打开仓库（BR-001 验收流程）', () => {
         'cancelReview',
         'chooseRepository',
         'clearDraft',
+        'commitFiles',
+        'commitStaged',
         'getSnapshot',
         'listAgents',
         'listRepositories',
@@ -188,10 +190,13 @@ test.describe('打开仓库（BR-001 验收流程）', () => {
         'listRuns',
         'onReviewRun',
         'openRepositoryPath',
+        'previewCommit',
         'removeRepository',
         'saveDraft',
         'saveReview',
-        'startReview'
+        'stageFiles',
+        'startReview',
+        'unstageFiles'
       ]);
       const url = page.url();
       expect(url.startsWith('branchroom://app/')).toBe(true);

@@ -153,3 +153,49 @@ export function parseCancelReviewInput(input: unknown): Parsed<{runId: string}> 
   if (typeof runId !== 'string' || runId.trim() === '') return fail('runId 必须是非空字符串');
   return {ok: true, value: {runId}};
 }
+
+export interface PathsInput {
+  repoId: string;
+  paths: string[];
+}
+
+export function parsePathsInput(input: unknown): Parsed<PathsInput> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const record = input as Record<string, unknown>;
+  if (typeof record.repoId !== 'string' || record.repoId.trim() === '') {
+    return fail('repoId 必须是非空字符串');
+  }
+  if (!Array.isArray(record.paths) || record.paths.length === 0
+    || !record.paths.every((path) => typeof path === 'string' && path !== '')) {
+    return fail('paths 必须是非空字符串数组');
+  }
+  return {ok: true, value: {repoId: record.repoId as string, paths: record.paths as string[]}};
+}
+
+export interface CommitInput {
+  repoId: string;
+  message: string;
+  paths?: string[];
+}
+
+export function parseCommitInput(input: unknown, requirePaths: boolean): Parsed<CommitInput> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const record = input as Record<string, unknown>;
+  if (typeof record.repoId !== 'string' || record.repoId.trim() === '') {
+    return fail('repoId 必须是非空字符串');
+  }
+  if (typeof record.message !== 'string' || record.message.trim() === '') {
+    return fail('message 必须是非空字符串');
+  }
+  if (requirePaths) {
+    if (!Array.isArray(record.paths) || record.paths.length === 0
+      || !record.paths.every((path) => typeof path === 'string' && path !== '')) {
+      return fail('paths 必须是非空字符串数组');
+    }
+    return {
+      ok: true,
+      value: {repoId: record.repoId as string, message: record.message as string, paths: record.paths as string[]}
+    };
+  }
+  return {ok: true, value: {repoId: record.repoId as string, message: record.message as string}};
+}

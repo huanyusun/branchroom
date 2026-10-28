@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { Repository, Snapshot } from '../../../shared/contracts';
+import type { ChangeFile, Repository, Snapshot } from '../../../shared/contracts';
 import type { DraftEntryView, ReviewEntryView } from '../../../shared/contracts';
 import { createLatestGuard } from '../../lib/latest-guard';
 import { AgentPanel } from '../agent-review/AgentPanel';
 import { RepositoryIdentity } from '../repositories/RepositoryIdentity';
 import { ReviewPanel } from '../review/ReviewPanel';
+import { CommitBar } from './CommitBar';
 import { DiffView } from './DiffView';
 import { FileList } from './FileList';
 
@@ -38,6 +39,9 @@ export function Workspace({repository}: Props): React.JSX.Element {
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
   const [focusLine, setFocusLine] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [indexRevision, setIndexRevision] = useState(0);
+  const [stagingBusy, setStagingBusy] = useState(false);
+  const [stagingError, setStagingError] = useState<{code: string; message: string} | null>(null);
   // CHECK-07：只有最后一次请求的结果允许落地，切换仓库/快速刷新不会互相覆盖
   const guard = useRef(createLatestGuard());
 
@@ -53,7 +57,8 @@ export function Workspace({repository}: Props): React.JSX.Element {
 
   const load = useCallback(async () => {
     const token = guard.current.begin();
-    setState({status: 'loading'});
+    // 刷新时不闪退到 loading：保留已就绪的快照与面板状态，仅首次/换仓库显示加载
+    setState((current) => (current.status === 'ready' ? current : {status: 'loading'}));
     const result = await window.branchroom.getSnapshot(repository.id);
     if (!guard.current.isCurrent(token)) return;
     if (result.ok) {
@@ -98,10 +103,49 @@ export function Workspace({repository}: Props): React.JSX.Element {
     setRefreshing(true);
     try {
       await load();
+      setIndexRevision((current) => current + 1); // 索引可能随外部变化
     } finally {
       setRefreshing(false);
     }
   }, [load]);
+
+  const stageFile = useCallback(
+    async (file: ChangeFile) => {
+      setStagingBusy(true);
+      setStagingError(null);
+      try {
+        const result = await window.branchroom.stageFiles(repository.id, [file.id]);
+        if (!result.ok) {
+          setStagingError({code: result.error.code, message: result.error.message});
+        }
+        await refresh();
+      } finally {
+        setStagingBusy(false);
+      }
+    },
+    [repository.id, refresh]
+  );
+
+  const unstageFile = useCallback(
+    async (file: ChangeFile) => {
+      setStagingBusy(true);
+      setStagingError(null);
+      try {
+        const result = await window.branchroom.unstageFiles(repository.id, [file.id]);
+        if (!result.ok) {
+          setStagingError({code: result.error.code, message: result.error.message});
+        }
+        await refresh();
+      } finally {
+        setStagingBusy(false);
+      }
+    },
+    [repository.id, refresh]
+  );
+
+  const onCommitted = useCallback(async () => {
+    await refresh();
+  }, [refresh]);
 
   const selected =
     state.status === 'ready'
@@ -125,6 +169,18 @@ export function Workspace({repository}: Props): React.JSX.Element {
           {refreshing ? '刷新中…' : '刷新'}
         </button>
       </header>
+
+      {stagingError !== null && (
+        <div className="error-banner" role="alert">
+          <span>
+            {stagingError.message}
+            <code className="error-code"> {stagingError.code}</code>
+          </span>
+          <button type="button" className="btn btn-ghost" aria-label="关闭错误提示" onClick={() => setStagingError(null)}>
+            ✕
+          </button>
+        </div>
+      )}
 
       {state.status === 'loading' && <div className="workspace-status">正在读取工作区变更…</div>}
 
@@ -153,7 +209,20 @@ export function Workspace({repository}: Props): React.JSX.Element {
             <div className="panel-header">
               <h2>变更文件</h2>
             </div>
-            <FileList files={state.snapshot.files} selectedPath={selectedPath} onSelect={setSelectedPath} />
+            <FileList
+              files={state.snapshot.files}
+              selectedPath={selectedPath}
+              onSelect={setSelectedPath}
+              onStage={(file) => void stageFile(file)}
+              onUnstage={(file) => void unstageFile(file)}
+              busy={stagingBusy}
+            />
+            <CommitBar
+              repositoryId={repository.id}
+              revision={indexRevision}
+              selectedFile={selected}
+              onCommitted={(hash) => void onCommitted().then(() => setFocusLine(null))}
+            />
           </aside>
           {selected !== null ? (
             <div className="diff-column">

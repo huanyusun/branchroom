@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
   AgentCapability,
+  CommitPreview,
   ExposedBranchroomAPI,
   Repository,
   RepositoryEntry,
@@ -48,7 +49,17 @@ const api: ExposedBranchroomAPI = {
     return () => {
       ipcRenderer.removeListener('branchroom:review-run-event', handler);
     };
-  }
+  },
+  stageFiles: (repoId: string, paths: string[]): Promise<Result<void>> =>
+    ipcRenderer.invoke('branchroom:stage-files', {repoId, paths}) as Promise<Result<void>>,
+  unstageFiles: (repoId: string, paths: string[]): Promise<Result<void>> =>
+    ipcRenderer.invoke('branchroom:unstage-files', {repoId, paths}) as Promise<Result<void>>,
+  previewCommit: (repoId: string): Promise<Result<CommitPreview>> =>
+    ipcRenderer.invoke('branchroom:preview-commit', {repoId}) as Promise<Result<CommitPreview>>,
+  commitStaged: (repoId: string, message: string): Promise<Result<{commitHash: string}>> =>
+    ipcRenderer.invoke('branchroom:commit-staged', {repoId, message}) as Promise<Result<{commitHash: string}>>,
+  commitFiles: (repoId: string, message: string, paths: string[]): Promise<Result<{commitHash: string}>> =>
+    ipcRenderer.invoke('branchroom:commit-files', {repoId, message, paths}) as Promise<Result<{commitHash: string}>>
 };
 
 contextBridge.exposeInMainWorld('branchroom', api);

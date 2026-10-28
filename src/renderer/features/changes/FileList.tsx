@@ -13,6 +13,9 @@ interface Props {
   files: ChangeFile[];
   selectedPath: string | null;
   onSelect: (path: string) => void;
+  onStage: (file: ChangeFile) => void;
+  onUnstage: (file: ChangeFile) => void;
+  busy: boolean;
 }
 
 const REVIEW_STATE_GLYPH: Record<ChangeFile['reviewState'], {glyph: string; className: string; title: string}> = {
@@ -28,42 +31,69 @@ function splitPath(path: string): {directory: string; name: string} {
   return {directory: path.slice(0, at + 1), name: path.slice(at + 1)};
 }
 
-export function FileList({files, selectedPath, onSelect}: Props): React.JSX.Element {
+export function FileList({files, selectedPath, onSelect, onStage, onUnstage, busy}: Props): React.JSX.Element {
   return (
     <ul className="file-list-items" aria-label="变更文件列表">
       {files.map((file) => {
         const {additions, deletions} = fileChangeStats(file);
         const {directory, name} = splitPath(file.path);
         const staged = file.indexStatus !== '.' && file.indexStatus !== '?';
+        const hasWorktreeChange = file.worktreeStatus !== '.';
         const reviewGlyph = REVIEW_STATE_GLYPH[file.reviewState];
         return (
           <li key={file.id}>
-            <button
-              type="button"
+            <div
               className={file.path === selectedPath ? 'file-item selected' : 'file-item'}
               data-testid="file-item"
               data-path={file.path}
-              onClick={() => onSelect(file.path)}
-              title={file.unavailableReason ?? file.path}
             >
-              <span className={`review-glyph ${reviewGlyph.className}`} title={reviewGlyph.title}>
-                {reviewGlyph.glyph}
-              </span>
-              <span className={`kind-badge kind-${file.kind}`}>{KIND_LABELS[file.kind]}</span>
-              <span className="file-item-path">
-                <span className="file-dir">{directory}</span>
-                <span className="file-name">{name}</span>
-              </span>
-              <span className="file-item-meta">
-                {staged && <span className="staged-dot" title="已暂存">●</span>}
-                {additions !== null && (
-                  <span className="mono stats">
-                    <span className="green">+{additions}</span>{' '}
-                    <span className="red">−{deletions}</span>
-                  </span>
+              <button
+                type="button"
+                className="file-item-main"
+                onClick={() => onSelect(file.path)}
+                title={file.unavailableReason ?? file.path}
+              >
+                <span className={`review-glyph ${reviewGlyph.className}`} title={reviewGlyph.title}>
+                  {reviewGlyph.glyph}
+                </span>
+                <span className={`kind-badge kind-${file.kind}`}>{KIND_LABELS[file.kind]}</span>
+                <span className="file-item-path">
+                  <span className="file-dir">{directory}</span>
+                  <span className="file-name">{name}</span>
+                </span>
+                <span className="file-item-meta">
+                  {staged && <span className="staged-dot" title="已暂存">●</span>}
+                  {additions !== null && (
+                    <span className="mono stats">
+                      <span className="green">+{additions}</span>{' '}
+                      <span className="red">−{deletions}</span>
+                    </span>
+                  )}
+                </span>
+              </button>
+              <span className="file-item-actions">
+                {hasWorktreeChange && !busy && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost file-action"
+                    title={`暂存 ${file.path} 到索引`}
+                    onClick={() => onStage(file)}
+                  >
+                    暂存
+                  </button>
+                )}
+                {staged && !busy && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost file-action"
+                    title={`把 ${file.path} 移出暂存区（工作区内容不动）`}
+                    onClick={() => onUnstage(file)}
+                  >
+                    取消暂存
+                  </button>
                 )}
               </span>
-            </button>
+            </div>
           </li>
         );
       })}
