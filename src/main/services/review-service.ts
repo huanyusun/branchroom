@@ -37,6 +37,7 @@ interface SnapshotFileRecord {
 /** 本会话内 snapshotId → 文件身份的登记表；保存结论时用于核对。 */
 export class SnapshotRegistry {
   readonly #bySnapshot = new Map<string, {repoId: string; files: Map<string, SnapshotFileRecord>}>();
+  readonly #snapshots = new Map<string, Snapshot>();
   readonly #latest = new Map<string, string>();
 
   remember(snapshot: Snapshot): void {
@@ -48,6 +49,7 @@ export class SnapshotRegistry {
       });
     }
     this.#bySnapshot.set(snapshot.id, {repoId: snapshot.repoId, files});
+    this.#snapshots.set(snapshot.id, snapshot);
     this.#latest.set(snapshot.repoId, snapshot.id);
   }
 
@@ -57,6 +59,10 @@ export class SnapshotRegistry {
 
   fileOf(snapshotId: string, fileId: string): SnapshotFileRecord | null {
     return this.recordOf(snapshotId, fileId);
+  }
+
+  snapshotOf(snapshotId: string): Snapshot | null {
+    return this.#snapshots.get(snapshotId) ?? null;
   }
 
   latestFor(repoId: string): string | null {

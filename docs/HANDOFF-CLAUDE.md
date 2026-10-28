@@ -3,7 +3,7 @@
 ## 接手时的真实状态
 
 - 项目位置：本仓库根目录 `branchroom`。这是独立项目，不是 fde-study 的改动。
-- 正式桌面应用已在实现中：BR-001（Electron + React + TS 工程、原生选仓库、受限 preload）、BR-002（一致快照与 Diff 阅读）、BR-003（人工审查持久化与草稿）已完成并有测试证据，见 docs/BACKLOG.md；下一项是 BR-004（Agent Review）。
+- 正式桌面应用已在实现中：BR-001（工程与选仓库）、BR-002（一致快照与 Diff）、BR-003（人工审查持久化）、BR-004（本地 Agent Review，Codex/Claude 真实调用验证通过）已完成并有测试证据，见 docs/BACKLOG.md；下一项是 BR-005（可用性验证与复审闭环）。
 - 已保存产品需求、术语、架构建议、契约、任务次序、验收，以及两个参考原型。
 - `reference/design` 是 Open Design 中获认可的暗色交互设计；`reference/prototype` 是已验证真实 Git / Codex 审查流程的 Bun 浏览器原型，仅作参考，不是生产实现。
 - 运行记录、源仓库内容和凭据没有复制到这里。测试用临时 Git 仓库，不依赖 fde-study。

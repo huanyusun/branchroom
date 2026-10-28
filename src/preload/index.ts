@@ -1,13 +1,15 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type {
+  AgentCapability,
   ExposedBranchroomAPI,
   Repository,
   RepositoryEntry,
   Result,
   ReviewOverview,
+  ReviewRun,
   Snapshot
 } from '../shared/contracts';
-import type { SaveDraftInput, SaveReviewInput } from '../shared/schemas';
+import type { SaveDraftInput, SaveReviewInput, StartReviewInput } from '../shared/schemas';
 
 // 只暴露具体方法；不暴露 ipcRenderer 或原始 invoke。
 // 返回值类型是主进程 Result 的镜像；跨 IPC 的运行时数据由主进程 schema 校验保证。
@@ -31,7 +33,22 @@ const api: ExposedBranchroomAPI = {
   listReviewEntries: (repoId: string): Promise<Result<ReviewOverview>> =>
     ipcRenderer.invoke('branchroom:list-review-entries', {repoId}) as Promise<Result<ReviewOverview>>,
   clearDraft: (repoId: string, fileId: string): Promise<Result<void>> =>
-    ipcRenderer.invoke('branchroom:clear-draft', {repoId, fileId}) as Promise<Result<void>>
+    ipcRenderer.invoke('branchroom:clear-draft', {repoId, fileId}) as Promise<Result<void>>,
+  listAgents: (): Promise<Result<AgentCapability[]>> =>
+    ipcRenderer.invoke('branchroom:list-agents') as Promise<Result<AgentCapability[]>>,
+  startReview: (input: StartReviewInput): Promise<Result<ReviewRun>> =>
+    ipcRenderer.invoke('branchroom:start-review', input) as Promise<Result<ReviewRun>>,
+  cancelReview: (runId: string): Promise<Result<void>> =>
+    ipcRenderer.invoke('branchroom:cancel-review', {runId}) as Promise<Result<void>>,
+  listRuns: (repoId: string): Promise<Result<ReviewRun[]>> =>
+    ipcRenderer.invoke('branchroom:list-runs', {repoId}) as Promise<Result<ReviewRun[]>>,
+  onReviewRun: (listener: (run: ReviewRun) => void): (() => void) => {
+    const handler = (_event: unknown, run: ReviewRun): void => listener(run);
+    ipcRenderer.on('branchroom:review-run-event', handler);
+    return () => {
+      ipcRenderer.removeListener('branchroom:review-run-event', handler);
+    };
+  }
 };
 
 contextBridge.exposeInMainWorld('branchroom', api);

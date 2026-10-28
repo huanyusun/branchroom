@@ -7,8 +7,8 @@
 | BR-001 | done | architecture | Electron + React + TS 工程、原生选仓库、受限 preload、基础测试与打包启动验证 | 无 |
 | BR-002 | done | feature | Git 服务、一致性快照、真实文件列表、双栏/单栏 Diff 与全文 | BR-001 |
 | BR-003 | done | feature | 持久化人工审查/草稿、内容变化复审、仓库与 worktree 隔离 | BR-002 |
-| BR-004 | ready | feature | Codex/Claude 适配、配置兼容诊断、任务生命周期、校验报告与历史 | BR-002 |
-| BR-005 | backlog | design | Agent 意见定位/采纳、修复反馈、复审闭环与三轮真实试用 | BR-003、BR-004 |
+| BR-004 | done | feature | Codex/Claude 适配、配置兼容诊断、任务生命周期、校验报告与历史 | BR-002 |
+| BR-005 | ready | design | Agent 意见定位/采纳、修复反馈、复审闭环与三轮真实试用 | BR-003、BR-004 |
 | BR-006 | backlog | feature | 显式暂存/取消暂存、提交预览与文件级提交 | BR-005 |
 | BR-007 | backlog | feature | 分支/提交图/详情/筛选联动与分支基础操作 | BR-006 |
 | BR-008 | backlog | feature | Fetch/Pull/Push 与状态恢复、merge/rebase 中断与冲突处理 | BR-007 |
@@ -73,11 +73,22 @@
 - 大 Diff 的对齐计算预算按行数阈值跳过（明确提示），worker 化与虚拟化在 BR-009 细化。
 - Agent Review 仍未实现；"采纳意见产生反馈草稿"属 BR-005。
 
-## BR-004 · Agent Review
+## BR-004 · Agent Review（done，2026-10-28）
 
 验收：CLI 缺失/认证/模型配置失败分开；Codex/Claude 不破坏用户 provider 配置；取消清理整棵进程树；输出路径/side/行号/覆盖合法；记录多次报告；真调用与假 CLI 自动化测试分别记录，不能用 UI 演示替代。
 
-Claude 模型问题的调查步骤详见 AGENT-INTEGRATION.md。它是待解决的真实兼容性问题，不是已修复事项。
+实际证据（2026-10-28）：
+
+- `bun run test` 119/119（新增 31）：报告校验（coverage 完整性/行号越界/枚举/重复意见/非对象输入）、runner（成功/非零/超时/输出上限/取消杀整树含孙进程/ENOENT）、能力检测（missing/available/incompatible）、RunManager（queued→succeeded、run_busy、cancelled、agent_auth_required 与 agent_incompatible 分类、agent_timeout、agent_missing、unknown snapshot → content_changed、崩溃遗留 run → interrupted、历史保留）。
+- `bun run test:e2e` 14/14：假 CLI 经产品级 settings（显式可执行路径）注入，UI 全流程——能力芯片、发起审查、意见列表、点击定位到文件、历史 run、进行中停止 → cancelled。renderer 桥扩至 14 个类型化方法，仍无任意系统调用入口。
+- 真实 CLI 验证（`bun scripts/real-agent-check.ts`，手动运行、元数据不含代码内容）：codex succeeded 27 秒 2 条 P2；claude succeeded 228 秒 2 条 P2，双方均真实发现 fixture 埋的缺陷。Claude 兼容问题定位为原型 `--setting-sources ''` 清空用户配置所致；正式适配器保留配置并用 `--restricted`，详见 AGENT-INTEGRATION.md。
+- 生命周期：退出前 `cancelAllActive()` 终止全部 CLI 进程树；run 逐状态原子落盘，重启遗留 running → interrupted 不自动重跑。
+
+已知限制与后续补齐点：
+
+- 显式 CLI 路径目前经 userData/agent-settings.json 配置，GUI 选择入口与 BR-005 可用性验证一起做。
+- Agent 面板意见点击定位到文件（Diff 视图），行内滚动定位与"采纳为草稿"属 BR-005。
+- 超时默认 8 分钟常量；倒计时显示与可配置化留到可用性轮。
 
 ## BR-005 · 可用性验证
 

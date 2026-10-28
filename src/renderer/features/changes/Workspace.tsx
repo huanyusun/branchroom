@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Repository, Snapshot } from '../../../shared/contracts';
 import type { DraftEntryView, ReviewEntryView } from '../../../shared/contracts';
 import { createLatestGuard } from '../../lib/latest-guard';
+import { AgentPanel } from '../agent-review/AgentPanel';
 import { RepositoryIdentity } from '../repositories/RepositoryIdentity';
 import { ReviewPanel } from '../review/ReviewPanel';
 import { DiffView } from './DiffView';
@@ -157,6 +158,13 @@ export function Workspace({repository}: Props): React.JSX.Element {
                   onSaved={() => void refresh()}
                 />
               )}
+              <AgentPanel
+                repositoryId={repository.id}
+                snapshotId={state.snapshot.id}
+                files={state.snapshot.files}
+                selectedFile={selected}
+                onSelectFile={setSelectedPath}
+              />
             </div>
           ) : (
             <div className="workspace-status">选择左侧文件查看 Diff。</div>

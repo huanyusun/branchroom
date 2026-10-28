@@ -111,3 +111,45 @@ export function parseFileScopedInput(input: unknown): Parsed<{repoId: string; fi
   }
   return {ok: true, value: {repoId: record.repoId as string, fileId: record.fileId as string}};
 }
+
+const PROVIDERS = new Set(['codex', 'claude']);
+
+export interface StartReviewInput {
+  repoId: string;
+  snapshotId: string;
+  fileIds: string[];
+  provider: 'codex' | 'claude';
+}
+
+export function parseStartReviewInput(input: unknown): Parsed<StartReviewInput> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const record = input as Record<string, unknown>;
+  for (const field of ['repoId', 'snapshotId'] as const) {
+    if (typeof record[field] !== 'string' || (record[field] as string).trim() === '') {
+      return fail(`${field} 必须是非空字符串`);
+    }
+  }
+  if (!Array.isArray(record.fileIds) || record.fileIds.length === 0
+    || !record.fileIds.every((id) => typeof id === 'string' && id !== '')) {
+    return fail('fileIds 必须是非空字符串数组');
+  }
+  if (typeof record.provider !== 'string' || !PROVIDERS.has(record.provider)) {
+    return fail('provider 必须是 codex 或 claude');
+  }
+  return {
+    ok: true,
+    value: {
+      repoId: record.repoId as string,
+      snapshotId: record.snapshotId as string,
+      fileIds: record.fileIds as string[],
+      provider: record.provider as StartReviewInput['provider']
+    }
+  };
+}
+
+export function parseCancelReviewInput(input: unknown): Parsed<{runId: string}> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const runId = (input as {runId?: unknown}).runId;
+  if (typeof runId !== 'string' || runId.trim() === '') return fail('runId 必须是非空字符串');
+  return {ok: true, value: {runId}};
+}

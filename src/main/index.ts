@@ -10,6 +10,7 @@ import { createRecentStore } from './services/recent-store';
 import { RepositoryRegistry } from './services/repositories';
 import { createReviewStore } from './services/review-store';
 import { ReviewService, SnapshotRegistry } from './services/review-service';
+import { RunManager } from './services/review-runs';
 
 const isDev = !app.isPackaged;
 const rendererRoot = join(import.meta.dirname, '../renderer');
@@ -27,6 +28,8 @@ const gotSingleInstanceLock = app.requestSingleInstanceLock();
 if (!gotSingleInstanceLock) {
   app.quit();
 }
+
+let runManager: RunManager | null = null;
 
 function createWindow(): BrowserWindow {
   const window = new BrowserWindow({
@@ -60,13 +63,30 @@ function createWindow(): BrowserWindow {
 app.whenReady().then(() => {
   applyContentSecurityPolicy(isDev);
   registerBranchroomProtocol(rendererRoot);
+  const userData = app.getPath('userData');
   const registry = new RepositoryRegistry();
-  const reviewStore = createReviewStore(join(app.getPath('userData'), 'reviews'));
+  const snapshots = new SnapshotRegistry();
+  const reviewStore = createReviewStore(join(userData, 'reviews'));
+  const reviewService = new ReviewService(reviewStore, snapshots, registry);
+  // run 状态推送给所有窗口；renderer 通过 onReviewRun 订阅
+  runManager = new RunManager({
+    runsDir: join(userData, 'agent-runs'),
+    configDir: userData,
+    registry,
+    snapshots,
+    onUpdate: (run) => {
+      for (const window of BrowserWindow.getAllWindows()) {
+        window.webContents.send('branchroom:review-run-event', run);
+      }
+    }
+  });
+  void runManager.init().catch((error) => console.warn('[branchroom] run 恢复失败', error));
   registerRepositoryHandlers(ipcMain, {
     getWindow: () => BrowserWindow.getAllWindows()[0] ?? null,
-    recentStore: createRecentStore(join(app.getPath('userData'), 'recent-repositories.json')),
+    recentStore: createRecentStore(join(userData, 'recent-repositories.json')),
     registry,
-    reviewService: new ReviewService(reviewStore, new SnapshotRegistry(), registry),
+    reviewService,
+    runManager,
     isDev
   });
   createWindow();
@@ -86,4 +106,9 @@ app.on('second-instance', () => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// 生命周期约定（CONTEXT.md 不变量 8）：退出前终止自己创建的整棵 CLI 进程树
+app.on('before-quit', () => {
+  runManager?.cancelAllActive();
 });

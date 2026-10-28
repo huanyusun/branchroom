@@ -1,12 +1,14 @@
 # 本地 Agent 接入调查与实现要求
 
-## 已验证事实（2026-10-28）
+## 已验证事实（2026-10-28，BR-004 完成时更新）
 
-- 本机 codex exec 和 claude --print 均存在；两个 CLI 的 auth status 都报告已登录。
-- Codex 真实审查了 fde-study 的 4 个变更文件，返回 1 个 issue 和 1 个 verify；UI 定位与反馈草稿已验证。
-- Claude 本次测试未成功，错误为 `unrecognized_model: glm-5.3-flash[1m]`。
-- 本机 Claude 配置是 Z.AI 服务，model=opus、opus 映射到 glm-5.3-flash。原型的 `--setting-sources ''` 又禁用了用户 settings；认证、路由、模型来源可能因此未被一致继承。
-- 目前没有证据确定服务端拒绝 [1m] 后缀，还是认证/路由/本地模型解析不一致。不要把假设写成已确定根因，也不要要求用户重新登录。
+- 本机 codex exec（0.164.0）与 claude --print（2.1.302）均存在，auth status 均已登录。
+- **Claude 兼容问题已定位并解决**：原型失败的根因方向是 `--setting-sources ''` 清空了用户 settings，导致 Z.AI provider/model 配置未被继承。正式适配器保留用户全部配置，改用 `--restricted` 移除执行类工具；`unrecognized_model: glm-5.3-flash[1m]` 只是 stderr 上的本地诊断警告，不阻塞执行（envelope `is_error:false`、structured_output 正常返回）。未修改用户全局配置。
+- 真实审查验证（临时 fixture 仓库，`bun scripts/real-agent-check.ts`，元数据不含代码内容）：
+  - codex：succeeded，27 秒，1 文件，2 条 P2 issue，真实发现 fixture 埋的两个缺陷（重试循环被超时中断、timer 未清理）。
+  - claude：succeeded，228 秒，1 文件，2 条 P2 issue，发现同样两个缺陷。
+- 正式适配器 argv：codex 沿用原型验证过的只读组合；claude 为 `--print --output-format json --json-schema … --permission-mode dontAsk --no-session-persistence --restricted --settings {"disableAllHooks":true}`。
+- 假 CLI 自动化测试覆盖慢响应/退出非零/超时/输出上限/取消/进程树清理；真实账号测试由上述脚本单独标记运行，不进入默认测试命令。
 
 不在本仓库保存 settings、token、完整环境、CLI 会话和真实审查结果。
 

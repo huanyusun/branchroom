@@ -7,15 +7,18 @@ import {
 } from '../services/repositories';
 import { buildSnapshot } from '../services/snapshots';
 import type { ReviewService } from '../services/review-service';
+import type { RunManager } from '../services/review-runs';
 import type { Repository, RepositoryEntry, Result } from '../../shared/contracts';
 import {
+  parseCancelReviewInput,
   parseFileScopedInput,
   parseGetSnapshotInput,
   parseNoInput,
   parseOpenRepositoryInput,
   parseRemoveRepositoryInput,
   parseSaveDraftInput,
-  parseSaveReviewInput
+  parseSaveReviewInput,
+  parseStartReviewInput
 } from '../../shared/schemas';
 
 export interface HandlerContext {
@@ -23,6 +26,7 @@ export interface HandlerContext {
   recentStore: RecentRepositoryStore;
   registry: RepositoryRegistry;
   reviewService: ReviewService;
+  runManager: RunManager;
   isDev: boolean;
 }
 
@@ -36,7 +40,11 @@ const CHANNELS = {
   saveReview: 'branchroom:save-review',
   saveDraft: 'branchroom:save-draft',
   listReviewEntries: 'branchroom:list-review-entries',
-  clearDraft: 'branchroom:clear-draft'
+  clearDraft: 'branchroom:clear-draft',
+  listAgents: 'branchroom:list-agents',
+  startReview: 'branchroom:start-review',
+  cancelReview: 'branchroom:cancel-review',
+  listRuns: 'branchroom:list-runs'
 } as const;
 
 function ok<T>(data: T): Result<T> {
@@ -207,5 +215,35 @@ export function registerRepositoryHandlers(ipcMain: IpcMain, ctx: HandlerContext
     if (!parsed.ok) return fail('invalid_input', parsed.message);
     await ctx.recentStore.remove(parsed.value.id);
     return ok(undefined);
+  });
+
+  guard(CHANNELS.listAgents, async (input) => {
+    const parsed = parseNoInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    return ok(await ctx.runManager.listAgents());
+  });
+
+  guard(CHANNELS.startReview, async (input) => {
+    const parsed = parseStartReviewInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const run = await ctx.runManager.startReview(parsed.value);
+    return ok(run);
+  });
+
+  guard(CHANNELS.cancelReview, async (input) => {
+    const parsed = parseCancelReviewInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    await ctx.runManager.cancelReview(parsed.value.runId);
+    return ok(undefined);
+  });
+
+  guard(CHANNELS.listRuns, async (input) => {
+    const parsed = parseGetSnapshotInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = ctx.registry.rootOf(parsed.value.repoId);
+    if (root === null) {
+      return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    }
+    return ok(await ctx.runManager.listRuns(parsed.value.repoId));
   });
 }
