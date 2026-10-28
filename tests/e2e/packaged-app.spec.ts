@@ -46,8 +46,8 @@ test.describe('打包产物验证', () => {
         repoRoot
       );
       await page.getByRole('button', {name: '打开本地仓库…'}).click();
-      await expect(page.locator('section[aria-label="仓库身份"]')).toBeVisible();
-      await expect(page.locator('section[aria-label="仓库身份"]')).toContainText('branchroom-打包验证-');
+      await expect(page.locator('[aria-label="仓库身份摘要"]')).toBeVisible();
+      await expect(page.locator('[aria-label="仓库身份摘要"]')).toContainText('branchroom-打包验证-');
       // 打包环境下应通过自定义协议加载，而不是远程脚本
       expect(page.url().startsWith('branchroom://app/')).toBe(true);
       await app.close();

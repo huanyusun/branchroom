@@ -23,3 +23,10 @@ export function parseRemoveRepositoryInput(input: unknown): Parsed<{id: string}>
   if (typeof id !== 'string' || id.trim() === '') return fail('id 必须是非空字符串');
   return {ok: true, value: {id}};
 }
+
+export function parseGetSnapshotInput(input: unknown): Parsed<{repoId: string}> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const repoId = (input as {repoId?: unknown}).repoId;
+  if (typeof repoId !== 'string' || repoId.trim() === '') return fail('repoId 必须是非空字符串');
+  return {ok: true, value: {repoId}};
+}

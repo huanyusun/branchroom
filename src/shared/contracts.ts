@@ -101,10 +101,10 @@ export interface RepositoryEntry {
   lastOpenedAt: string;
 }
 
-/** BR-001 阶段 preload 实际暴露的 API 子集。 */
+/** preload 实际暴露的 API 子集（BR-001/BR-002）。 */
 export type ExposedBranchroomAPI = Pick<
   BranchroomAPI,
-  'chooseRepository' | 'listRepositories'
+  'chooseRepository' | 'listRepositories' | 'getSnapshot'
 > & {
   /** 按已知路径重新打开最近仓库；主进程会重新校验它是有效 Git 仓库。 */
   openRepositoryPath(root: string): Promise<Result<Repository>>;

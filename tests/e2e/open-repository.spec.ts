@@ -73,26 +73,29 @@ test.describe('打开仓库（BR-001 验收流程）', () => {
       await mockOpenDialog(app, {canceled: false, filePaths: [repoRoot]});
       await page.getByRole('button', {name: '打开本地仓库…'}).click();
 
-      const identity = page.locator('section[aria-label="仓库身份"]');
+      const identity = page.locator('[aria-label="仓库身份摘要"]');
       await expect(identity).toBeVisible();
       const expectedName = basename((await exec('git', ['rev-parse', '--show-toplevel'], {cwd: repoRoot})).stdout.trim());
       await expect(identity).toContainText(expectedName);
       await expect(identity).toContainText('尚未创建提交'); // 分支真实但无 HEAD
       await expect(identity).toContainText('尚无提交');
-
-      const recent = page.locator('section[aria-label="最近仓库"]');
-      await expect(recent).toBeVisible();
-      await expect(recent).toContainText(expectedName);
-
-      // 通过最近列表重新打开：替换对话框为取消，证明走的是路径 API 而非对话框
-      await mockOpenDialog(app, {canceled: true, filePaths: []});
-      await page.locator('.app-header').getByRole('button', {name: '打开本地仓库…'}).click();
-      await expect(page.locator('section[aria-label="欢迎"]')).toHaveCount(0);
-      await recent.getByRole('button', {name: '打开', exact: true}).click();
-      await expect(page.locator('section[aria-label="仓库身份"]')).toBeVisible();
-      await expect(page.locator('section[aria-label="仓库身份"]')).toContainText(expectedName);
-    } finally {
       await app.close();
+
+      // 重启后通过最近列表重新打开，回到工作区
+      const second = await launchApp(userData);
+      try {
+        const recent = second.page.locator('section[aria-label="最近仓库"]');
+        await expect(recent).toBeVisible();
+        await expect(recent).toContainText(expectedName);
+        await mockOpenDialog(second.app, {canceled: true, filePaths: []});
+        await recent.getByRole('button', {name: '打开', exact: true}).click();
+        await expect(second.page.locator('[data-testid="workspace"]')).toBeVisible();
+        await expect(second.page.locator('[aria-label="仓库身份摘要"]')).toContainText(expectedName);
+      } finally {
+        await second.app.close().catch(() => undefined);
+      }
+    } finally {
+      await app.close().catch(() => undefined);
       await rm(userData, {recursive: true, force: true});
       await rm(repoRoot, {recursive: true, force: true});
     }
@@ -134,7 +137,7 @@ test.describe('打开仓库（BR-001 验收流程）', () => {
       const first = await launch();
       await mockOpenDialog(apps[0]!, {canceled: false, filePaths: [repoRoot]});
       await first.getByRole('button', {name: '打开本地仓库…'}).click();
-      await expect(first.locator('section[aria-label="仓库身份"]')).toBeVisible();
+      await expect(first.locator('[aria-label="仓库身份摘要"]')).toBeVisible();
       await apps[0]!.close();
 
       // 目录从磁盘消失后重新启动
@@ -175,6 +178,7 @@ test.describe('打开仓库（BR-001 验收流程）', () => {
       expect(security.electron).toBe('undefined');
       expect([...security.bridgeKeys].sort()).toEqual([
         'chooseRepository',
+        'getSnapshot',
         'listRepositories',
         'listRepositoryEntries',
         'openRepositoryPath',

@@ -2,7 +2,7 @@
 
 面向 AI 编程的独立桌面 Git 客户端：沿用 IDEA 的高密度 Git 交互，以批量修改审查、Agent 辅助 Review 和增量复审为核心。
 
-**当前状态：BR-001 首个桌面切片已实现（Electron + React + TS 工程、原生选仓库、受限 preload、测试与本地打包）。变更阅读、人工审查持久化与 Agent Review 属于 BR-002 起，尚未实现。** 参考 `reference/` 仍是原型，不是正式应用。
+**当前状态：BR-001（工程与选仓库）与 BR-002（真实变更阅读与 Diff）已实现。人工审查持久化、Agent Review、Git 写操作尚未实现。** 参考 `reference/` 仍是原型，不是正式应用。
 
 ## 从这里开始
 
@@ -35,7 +35,7 @@ bun run package:mac  # build + electron-builder 生成 dist/ 下的本地 .app�
 
 锁定版本：electron 45.0.0、electron-vite 6.0.0、vite 8.3.5、React 19.3.1、TypeScript 5.9.3、Vitest 5.0.5、Playwright 1.64.1、electron-builder 26.18.0（均 `--exact`，见 lockfile）。选型理由见 [ADR 0001](docs/adr/0001-desktop-stack.md)。
 
-当前能力边界：可选择本地目录并校验 Git 仓库身份（名称、路径、分支/分离 HEAD、HEAD、worktree），最近仓库列表带失效标记与移除；取消选择不是错误；非 Git 目录、裸仓库、不存在的路径返回明确错误码。renderer 运行在 contextIsolation + sandbox 之下，只有 `window.branchroom` 上的五个类型化方法。**尚无** Diff 阅读、审查状态、Agent Review、Git 写操作。
+当前能力边界：可选择本地目录并校验 Git 仓库身份；读取工作区相对 HEAD 的真实变更（未跟踪、已暂存、未暂存、删除、重命名、冲突），一次性构建一致快照（期间内容变化会重试，绝不返回混合快照）；文件列表带 A/M/D/R/U 标记与增删行数；修改文件为左右逐行对齐的双栏 Diff（长中文行换行后仍保持对齐），新增/删除文件单栏，另有全文视图与手动刷新；二进制、符号链接、子模块、超限大文件不可审阅但会显示明确原因，不会消失。renderer 运行在 contextIsolation + sandbox 之下，只有 `window.branchroom` 上的六个类型化方法。**尚无** 人工审查状态持久化、Agent Review、Git 写操作。
 
 自动化说明：`tests/e2e` 通过环境变量 `BRANCHROOM_USER_DATA_DIR` 隔离 userData，并通过 Playwright 在主进程内替换系统目录对话框，生产代码不含测试后门。
 

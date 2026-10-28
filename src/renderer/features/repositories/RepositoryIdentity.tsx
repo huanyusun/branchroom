@@ -14,9 +14,22 @@ function headLabel(repository: Repository): string {
   return `${repository.head.slice(0, 10)}…`;
 }
 
-/** 展示真实读取到的仓库身份；不捏造分支或提交。 */
-export function RepositoryIdentity({repository}: {repository: Repository}): React.JSX.Element {
+/** 展示真实读取到的仓库身份；不捏造分支或提交。compact 模式用于工作区头部的单行摘要。 */
+export function RepositoryIdentity({repository, compact = false}: {repository: Repository; compact?: boolean}): React.JSX.Element {
   const isLinkedWorktree = repository.gitDir !== repository.commonGitDir;
+
+  if (compact) {
+    return (
+      <span className="repo-inline" aria-label="仓库身份摘要">
+        <strong>{repository.name}</strong>
+        <span className="muted mono" title={repository.root}>{repository.root}</span>
+        <span>{branchLabel(repository)}</span>
+        <span className="muted mono">{headLabel(repository)}</span>
+        {isLinkedWorktree && <span className="badge-worktree">worktree</span>}
+      </span>
+    );
+  }
+
   const rows: Array<{label: string; value: string; mono?: boolean}> = [
     {label: '名称', value: repository.name},
     {label: '路径', value: repository.root, mono: true},

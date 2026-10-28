@@ -5,8 +5,8 @@
 | ID | 状态 | 类型 | 交付 | 依赖 |
 | --- | --- | --- | --- | --- |
 | BR-001 | done | architecture | Electron + React + TS 工程、原生选仓库、受限 preload、基础测试与打包启动验证 | 无 |
-| BR-002 | ready | feature | Git 服务、一致性快照、真实文件列表、双栏/单栏 Diff 与全文 | BR-001 |
-| BR-003 | backlog | feature | 持久化人工审查/草稿、内容变化复审、仓库与 worktree 隔离 | BR-002 |
+| BR-002 | done | feature | Git 服务、一致性快照、真实文件列表、双栏/单栏 Diff 与全文 | BR-001 |
+| BR-003 | ready | feature | 持久化人工审查/草稿、内容变化复审、仓库与 worktree 隔离 | BR-002 |
 | BR-004 | backlog | feature | Codex/Claude 适配、配置兼容诊断、任务生命周期、校验报告与历史 | BR-002 |
 | BR-005 | backlog | design | Agent 意见定位/采纳、修复反馈、复审闭环与三轮真实试用 | BR-003、BR-004 |
 | BR-006 | backlog | feature | 显式暂存/取消暂存、提交预览与文件级提交 | BR-005 |
@@ -36,11 +36,24 @@
 - BR-001 不包含 Diff、审查状态、Agent Review、Git 写操作；参考原型中的这些能力不算正式实现。
 - Bun 默认拦截 Electron postinstall，需要 `trustedDependencies`（已配置）；受限网络下载 Electron 二进制可用 `ELECTRON_MIRROR`，过程记录见 ADR 0001。
 
-## BR-002 · 真实变更阅读
+## BR-002 · 真实变更阅读（done，2026-10-28）
 
 范围：HEAD/worktree、未跟踪、暂存/未暂存、删除、rename、冲突与未创建 HEAD。保留旧路径；不支持阅读的项要显示原因，不能消失。
 
 验收：临时仓库 fixture 覆盖上述状态；内容与 patch 同一快照；中文长行对齐；新增文件不浪费左半屏；有版本变化时重试而不是生成混合快照。
+
+实际证据（2026-10-28）：
+
+- `bun run test` 46/46：porcelain v2 -z 解析（rename/unmerged/中文空格路径/子模块）、行对齐配对（modify/add/del/计数）、快照 fixture 覆盖修改/未跟踪/删除/重命名（含纯重命名）/合并冲突/二进制/符号链接/超大文件/未创建 HEAD/暂存与工作区混合；指纹在 stage/unstage 间不变；HEAD 中途移动 → 重试并落在新 HEAD；持续移动 → `snapshot_changed` 而非混合快照。
+- `bun run test:e2e` 9/9：文件列表四类变更（含必须显示的二进制）、新增文件默认单栏、对齐双栏出现修改对、删除单栏、二进制显示原因、对比/全文切换、磁盘再修改后刷新可见、干净仓库空状态；打包 .app 重新构建后真实启动通过。
+- UI 截图实际检查：工作区头部身份摘要、快照时间、增删统计；长中文行换行后左右两栏逐行对齐（共享行高）。
+
+已知限制与后续补齐点：
+
+- 大 Diff 采用渲染上限（对齐 4000 行/全文 20000 行）并明确显示未覆盖范围，完整虚拟化（BR-009 或按需提前）。
+- 快照为手动刷新；文件监视与去抖属 PRD 后续条目。
+- 冲突文件显示工作区全文（含冲突标记），不做三栏合并视图；属 BR-008 冲突处理范围。
+- worktree 目录内的仓库已按 worktree 根登记，但 BR-003 之前审查记录还没有持久化隔离可言。
 
 ## BR-003 · 人的审查状态
 

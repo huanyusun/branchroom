@@ -7,6 +7,7 @@ import {
 } from './protocol';
 import { registerRepositoryHandlers } from './ipc/handlers';
 import { createRecentStore } from './services/recent-store';
+import { RepositoryRegistry } from './services/repositories';
 
 const isDev = !app.isPackaged;
 const rendererRoot = join(import.meta.dirname, '../renderer');
@@ -60,6 +61,7 @@ app.whenReady().then(() => {
   registerRepositoryHandlers(ipcMain, {
     getWindow: () => BrowserWindow.getAllWindows()[0] ?? null,
     recentStore: createRecentStore(join(app.getPath('userData'), 'recent-repositories.json')),
+    registry: new RepositoryRegistry(),
     isDev
   });
   createWindow();

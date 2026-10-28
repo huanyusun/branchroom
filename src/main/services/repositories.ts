@@ -4,28 +4,19 @@ import { stat } from 'node:fs/promises';
 import { basename, isAbsolute, resolve } from 'node:path';
 import { promisify } from 'node:util';
 import type { Repository } from '../../shared/contracts';
+import { RepositoryError, isSpawnFailure } from './git';
+
+export { RepositoryError };
 
 const execFileP = promisify(execFile);
 const GIT_MAX_BUFFER = 4 * 1024 * 1024;
 
-/** 服务层错误；code 与 docs/CONTRACTS.md 的错误码语义一致。 */
-export class RepositoryError extends Error {
-  readonly code: string;
-  readonly retryable: boolean;
+const GIT_UNAVAILABLE = '未找到 git 命令。请确认系统 PATH 中已安装 Git，或在后续版本中显式指定可执行文件路径。';
 
-  constructor(
-    code: string,
-    message: string,
-    options?: {retryable?: boolean; cause?: unknown}
-  ) {
-    super(message);
-    this.name = 'RepositoryError';
-    this.code = code;
-    this.retryable = options?.retryable ?? false;
-    if (options?.cause !== undefined) {
-      (this as {cause?: unknown}).cause = options.cause;
-    }
-  }
+function firstStderrLine(error: unknown): string {
+  const stderr = (error as {stderr?: unknown} | null)?.stderr;
+  if (typeof stderr !== 'string') return '';
+  return stderr.trim().split('\n')[0] ?? '';
 }
 
 async function runGit(root: string, args: string[]): Promise<string> {
@@ -33,7 +24,22 @@ async function runGit(root: string, args: string[]): Promise<string> {
     const { stdout } = await execFileP('git', args, {cwd: root, maxBuffer: GIT_MAX_BUFFER});
     return stdout;
   } catch (error) {
-    throw classifyGitError(error, args);
+    if (isSpawnFailure(error)) {
+      throw new RepositoryError('git_unavailable', GIT_UNAVAILABLE, {retryable: true, cause: error});
+    }
+    const stderr = firstStderrLine(error);
+    if (args[0] === 'rev-parse' && args.includes('--is-inside-work-tree')) {
+      throw new RepositoryError(
+        'not_git_repository',
+        stderr ? `所选目录不是 Git 仓库（git: ${stderr}）` : '所选目录不是 Git 仓库。',
+        {cause: error}
+      );
+    }
+    throw new RepositoryError(
+      'repository_unavailable',
+      `无法读取 Git 仓库信息（git ${args.join(' ')} 失败${stderr ? `：${stderr}` : ''}）。`,
+      {cause: error}
+    );
   }
 }
 
@@ -43,41 +49,11 @@ async function tryGit(root: string, args: string[]): Promise<string | null> {
     const {stdout} = await execFileP('git', args, {cwd: root, maxBuffer: GIT_MAX_BUFFER});
     return stdout;
   } catch (error) {
-    if (isSpawnFailure(error)) throw classifyGitError(error, args);
+    if (isSpawnFailure(error)) {
+      throw new RepositoryError('git_unavailable', GIT_UNAVAILABLE, {retryable: true, cause: error});
+    }
     return null;
   }
-}
-
-function isSpawnFailure(error: unknown): boolean {
-  return (error as {code?: unknown} | null)?.code === 'ENOENT';
-}
-
-function firstStderrLine(error: unknown): string {
-  const stderr = (error as {stderr?: unknown} | null)?.stderr;
-  if (typeof stderr !== 'string') return '';
-  return stderr.trim().split('\n')[0] ?? '';
-}
-
-function classifyGitError(error: unknown, args: string[]): RepositoryError {
-  if (isSpawnFailure(error)) {
-    return new RepositoryError('git_unavailable', '未找到 git 命令。请确认系统 PATH 中已安装 Git，或在后续版本中显式指定可执行文件路径。', {
-      retryable: true,
-      cause: error
-    });
-  }
-  const stderr = firstStderrLine(error);
-  if (args[0] === 'rev-parse' && args.includes('--is-inside-work-tree')) {
-    return new RepositoryError(
-      'not_git_repository',
-      stderr ? `所选目录不是 Git 仓库（git: ${stderr}）` : '所选目录不是 Git 仓库。',
-      {cause: error}
-    );
-  }
-  return new RepositoryError(
-    'repository_unavailable',
-    `无法读取 Git 仓库信息（git ${args.join(' ')} 失败${stderr ? `：${stderr}` : ''}）。`,
-    {cause: error}
-  );
 }
 
 function repositoryId(root: string): string {
@@ -87,6 +63,19 @@ function repositoryId(root: string): string {
 /** 由根路径派生仓库 ID；与 openRepository 一致，路径失效时仍可用于最近列表操作。 */
 export function repositoryIdForRoot(root: string): string {
   return repositoryId(resolve(root));
+}
+
+/** 本会话内 repoId → 根路径的登记表；快照等服务凭 ID 找回仓库。 */
+export class RepositoryRegistry {
+  readonly #roots = new Map<string, string>();
+
+  remember(repository: Repository): void {
+    this.#roots.set(repository.id, repository.root);
+  }
+
+  rootOf(id: string): string | null {
+    return this.#roots.get(id) ?? null;
+  }
 }
 
 /**

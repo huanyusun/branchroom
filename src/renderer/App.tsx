@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { Repository, RepositoryEntry } from '../shared/contracts';
-import { RepositoryIdentity } from './features/repositories/RepositoryIdentity';
+import { Workspace } from './features/changes/Workspace';
 import { RecentRepositories } from './features/repositories/RecentRepositories';
 
 type AppError = {code: string; message: string};
@@ -102,19 +102,25 @@ export default function App(): React.JSX.Element {
       )}
 
       {repository === null ? (
-        <section className="empty-state" aria-label="欢迎">
-          <h1>打开一个本地 Git 仓库开始审查</h1>
-          <p>
-            Branchroom 面向 AI 批量修改：读取工作区相对 HEAD 的真实变更，让人工审查与 Agent
-            辅助审查各司其职。当前切片支持选择仓库并确认其身份，变更阅读与 Agent
-            审查将在后续任务中提供。
-          </p>
-        </section>
+        <>
+          <section className="empty-state" aria-label="欢迎">
+            <h1>打开一个本地 Git 仓库开始审查</h1>
+            <p>
+              Branchroom 面向 AI 批量修改：读取工作区相对 HEAD 的真实变更，让人工审查与 Agent
+              辅助审查各司其职。当前支持查看真实变更与 Diff，审查记录与 Agent
+              审查将在后续任务中提供。
+            </p>
+          </section>
+          <RecentRepositories
+            entries={entries}
+            onOpen={(root) => void openByPath(root)}
+            onRemove={(id) => void removeEntry(id)}
+            busyRoot={busyRoot}
+          />
+        </>
       ) : (
-        <RepositoryIdentity repository={repository} />
+        <Workspace repository={repository} />
       )}
-
-      <RecentRepositories entries={entries} onOpen={(root) => void openByPath(root)} onRemove={(id) => void removeEntry(id)} busyRoot={busyRoot} />
     </main>
   );
 }

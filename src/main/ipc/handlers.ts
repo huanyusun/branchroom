@@ -1,8 +1,14 @@
 import { dialog, type BrowserWindow, type IpcMain, type IpcMainInvokeEvent } from 'electron';
 import type { RecentRepositoryStore } from '../services/recent-store';
-import { openRepository, repositoryIdForRoot } from '../services/repositories';
+import {
+  openRepository,
+  repositoryIdForRoot,
+  type RepositoryRegistry
+} from '../services/repositories';
+import { buildSnapshot } from '../services/snapshots';
 import type { Repository, RepositoryEntry, Result } from '../../shared/contracts';
 import {
+  parseGetSnapshotInput,
   parseNoInput,
   parseOpenRepositoryInput,
   parseRemoveRepositoryInput
@@ -11,6 +17,7 @@ import {
 export interface HandlerContext {
   getWindow(): BrowserWindow | null;
   recentStore: RecentRepositoryStore;
+  registry: RepositoryRegistry;
   isDev: boolean;
 }
 
@@ -19,7 +26,8 @@ const CHANNELS = {
   listRepositories: 'branchroom:list-repositories',
   listRepositoryEntries: 'branchroom:list-repository-entries',
   openRepositoryPath: 'branchroom:open-repository-path',
-  removeRepository: 'branchroom:remove-repository'
+  removeRepository: 'branchroom:remove-repository',
+  getSnapshot: 'branchroom:get-snapshot'
 } as const;
 
 function ok<T>(data: T): Result<T> {
@@ -93,6 +101,7 @@ export function registerRepositoryHandlers(ipcMain: IpcMain, ctx: HandlerContext
       return ok<Repository | null>(null); // 取消不是异常
     }
     const repository = await openRepository(selection.filePaths[0]!);
+    ctx.registry.remember(repository);
     await ctx.recentStore.add(repository);
     return ok<Repository | null>(repository);
   });
@@ -116,6 +125,7 @@ export function registerRepositoryHandlers(ipcMain: IpcMain, ctx: HandlerContext
     const entries: RepositoryEntry[] = [];
     for (const record of records) {
       const repository = await resolveEntry(record.repository.root);
+      if (repository) ctx.registry.remember(repository);
       entries.push({
         id: repositoryIdForRoot(record.repository.root),
         repository,
@@ -131,8 +141,22 @@ export function registerRepositoryHandlers(ipcMain: IpcMain, ctx: HandlerContext
     const parsed = parseOpenRepositoryInput(input);
     if (!parsed.ok) return fail('invalid_input', parsed.message);
     const repository = await openRepository(parsed.value.root);
+    ctx.registry.remember(repository);
     await ctx.recentStore.add(repository);
     return ok(repository);
+  });
+
+  guard(CHANNELS.getSnapshot, async (input) => {
+    const parsed = parseGetSnapshotInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = ctx.registry.rootOf(parsed.value.repoId);
+    if (root === null) {
+      return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    }
+    const repository = await openRepository(root);
+    ctx.registry.remember(repository);
+    const snapshot = await buildSnapshot(repository);
+    return ok(snapshot);
   });
 
   guard(CHANNELS.removeRepository, async (input) => {
