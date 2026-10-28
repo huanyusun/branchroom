@@ -769,6 +769,62 @@ code {
   color: var(--accent);
 }
 
+/* 意见定位与采纳（BR-005） */
+.diff-row.focus-line,
+.single-row.focus-line {
+  outline: 1px solid var(--accent);
+  outline-offset: -1px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+.finding-stale-tag {
+  flex: none;
+  border: 1px solid color-mix(in srgb, var(--warning) 60%, transparent);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-size: 10.5px;
+  color: var(--warning);
+}
+
+.finding-detail {
+  margin: 2px 0 6px 22px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finding-text {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  user-select: text;
+  overflow-wrap: anywhere;
+}
+
+.finding-stale-banner {
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 55%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--warning);
+  font-size: 12px;
+}
+
+.finding-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.finding-adopt-hint {
+  font-size: 11.5px;
+}
+
 /* 错误提示 */
 .error-banner {
   flex: none;

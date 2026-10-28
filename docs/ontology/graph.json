@@ -1,0 +1,803 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-28",
+  "scope": "Branchroom 领域本体及开发任务的静态知识图谱",
+  "formalism": "带证据的属性图；不是 OWL/RDF 推理本体",
+  "statusVocabulary": {
+    "conceptAndEdge": [
+      "implemented",
+      "specified",
+      "planned"
+    ],
+    "task": [
+      "done",
+      "ready",
+      "backlog"
+    ]
+  },
+  "nodes": [
+    {
+      "id": "Repository",
+      "label": "仓库工作区",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "用户打开的本地 Git 工作区；linked worktree 按根目录隔离",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/services/repositories.ts"
+      ]
+    },
+    {
+      "id": "ReviewScope",
+      "label": "审查范围",
+      "kind": "concept",
+      "status": "specified",
+      "definition": "HEAD 到当前工作区；包括已暂存、未暂存及未跟踪内容",
+      "sources": [
+        "CONTEXT.md",
+        "docs/PRD.md"
+      ]
+    },
+    {
+      "id": "Snapshot",
+      "label": "冻结快照",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "一次一致读取的 HEAD 与变更文件集合；不是提交",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/services/snapshots.ts"
+      ]
+    },
+    {
+      "id": "ChangeFile",
+      "label": "快照文件变更",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "快照中的文件版本，带路径、双侧内容、Git 状态及可审阅原因",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/services/snapshots.ts"
+      ]
+    },
+    {
+      "id": "Fingerprint",
+      "label": "快照内容指纹",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "SHA-256 绑定 repoId、HEAD、路径及基线/当前内容摘要；不含暂存状态",
+      "sources": [
+        "src/main/services/snapshots.ts"
+      ]
+    },
+    {
+      "id": "ContentIdentity",
+      "label": "人工审查内容身份",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "基线与当前内容的 SHA-256；仓库和路径由存储外层隔离",
+      "sources": [
+        "src/main/services/review-store.ts"
+      ]
+    },
+    {
+      "id": "HumanReview",
+      "label": "人工审查结论",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "人为保存 reviewed 或 issue；pending 为无记录，recheck 为内容不匹配派生态",
+      "sources": [
+        "src/main/services/review-store.ts",
+        "src/shared/contracts.ts"
+      ]
+    },
+    {
+      "id": "FeedbackDraft",
+      "label": "反馈草稿",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "绑定文件内容身份的反馈文本；草稿保存与正式结论不同",
+      "sources": [
+        "src/main/services/review-service.ts",
+        "src/shared/contracts.ts"
+      ]
+    },
+    {
+      "id": "ReviewRun",
+      "label": "Agent 审查任务",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "对单一冻结快照中选定可审阅文件的一次 CLI 调用",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/services/review-runs.ts"
+      ]
+    },
+    {
+      "id": "AgentCapability",
+      "label": "Agent 能力",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "codex/claude 的可执行路径、版本与诊断状态",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/agents/capabilities.ts"
+      ]
+    },
+    {
+      "id": "AgentReport",
+      "label": "审查报告",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "经过本地校验的覆盖范围、限制与意见",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/agents/report.ts"
+      ]
+    },
+    {
+      "id": "Finding",
+      "label": "Agent 意见",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "issue 或 verify 建议，带证据、优先级及内容指纹",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/agents/report.ts"
+      ]
+    },
+    {
+      "id": "Location",
+      "label": "意见定位",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "fileId、side 与行号范围；当前适配器仅生成 current",
+      "sources": [
+        "src/shared/contracts.ts",
+        "src/main/agents/report.ts"
+      ]
+    },
+    {
+      "id": "Staging",
+      "label": "Git 暂存状态",
+      "kind": "concept",
+      "status": "implemented",
+      "definition": "indexStatus/worktreeStatus 为读取属性；写操作尚未实现",
+      "sources": [
+        "src/shared/contracts.ts",
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "ChangeGroup",
+      "label": "意图分组",
+      "kind": "concept",
+      "status": "planned",
+      "definition": "按修改意图跨文件组织；Agent 只建议分组",
+      "sources": [
+        "CONTEXT.md",
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "Provenance",
+      "label": "修改来源",
+      "kind": "concept",
+      "status": "specified",
+      "definition": "不能仅凭 Git 变化推断 Claude/Codex 归属；未知需保持 unknown",
+      "sources": [
+        "CONTEXT.md"
+      ]
+    },
+    {
+      "id": "GitWrite",
+      "label": "显式 Git 写操作",
+      "kind": "concept",
+      "status": "planned",
+      "definition": "暂存、取消暂存及提交，只由明确产品操作触发",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "FeedbackLoop",
+      "label": "意见采纳与复审闭环",
+      "kind": "concept",
+      "status": "planned",
+      "definition": "采纳形成草稿、人工保存、外部修复、刷新与复审",
+      "sources": [
+        "docs/BACKLOG.md",
+        "docs/ACCEPTANCE.md"
+      ]
+    },
+    {
+      "id": "BR-001",
+      "label": "BR-001",
+      "kind": "task",
+      "status": "done",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-002",
+      "label": "BR-002",
+      "kind": "task",
+      "status": "done",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-003",
+      "label": "BR-003",
+      "kind": "task",
+      "status": "done",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-004",
+      "label": "BR-004",
+      "kind": "task",
+      "status": "done",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-005",
+      "label": "BR-005",
+      "kind": "task",
+      "status": "ready",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-006",
+      "label": "BR-006",
+      "kind": "task",
+      "status": "backlog",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-007",
+      "label": "BR-007",
+      "kind": "task",
+      "status": "backlog",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-008",
+      "label": "BR-008",
+      "kind": "task",
+      "status": "backlog",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-009",
+      "label": "BR-009",
+      "kind": "task",
+      "status": "backlog",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "BR-010",
+      "label": "BR-010",
+      "kind": "task",
+      "status": "backlog",
+      "definition": "任务范围与验收以 BACKLOG 对应章节为准",
+      "sources": [
+        "docs/BACKLOG.md"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "source": "Repository",
+      "relation": "hasSnapshot",
+      "target": "Snapshot",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "0..*"
+    },
+    {
+      "source": "Snapshot",
+      "relation": "realizesScope",
+      "target": "ReviewScope",
+      "status": "specified",
+      "evidence": [
+        "CONTEXT.md"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "Snapshot",
+      "relation": "contains",
+      "target": "ChangeFile",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "0..*"
+    },
+    {
+      "source": "ChangeFile",
+      "relation": "identifiedBy",
+      "target": "Fingerprint",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/snapshots.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "ChangeFile",
+      "relation": "comparedBy",
+      "target": "ContentIdentity",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/review-store.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "ChangeFile",
+      "relation": "hasStaging",
+      "target": "Staging",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "HumanReview",
+      "relation": "judges",
+      "target": "ChangeFile",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/review-service.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "HumanReview",
+      "relation": "boundTo",
+      "target": "ContentIdentity",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/review-store.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "FeedbackDraft",
+      "relation": "boundTo",
+      "target": "ContentIdentity",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/review-service.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "FeedbackDraft",
+      "relation": "describes",
+      "target": "ChangeFile",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/review-service.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "Repository",
+      "relation": "hasRun",
+      "target": "ReviewRun",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "0..*"
+    },
+    {
+      "source": "ReviewRun",
+      "relation": "reviews",
+      "target": "Snapshot",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "ReviewRun",
+      "relation": "selects",
+      "target": "ChangeFile",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/review-runs.ts"
+      ],
+      "cardinality": "1..*"
+    },
+    {
+      "source": "ReviewRun",
+      "relation": "uses",
+      "target": "AgentCapability",
+      "status": "implemented",
+      "evidence": [
+        "src/main/services/review-runs.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "ReviewRun",
+      "relation": "produces",
+      "target": "AgentReport",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "0..1"
+    },
+    {
+      "source": "AgentReport",
+      "relation": "contains",
+      "target": "Finding",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "0..*"
+    },
+    {
+      "source": "AgentReport",
+      "relation": "covers",
+      "target": "ChangeFile",
+      "status": "implemented",
+      "evidence": [
+        "src/main/agents/report.ts"
+      ],
+      "cardinality": "1..*"
+    },
+    {
+      "source": "Finding",
+      "relation": "locatedAt",
+      "target": "Location",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "Location",
+      "relation": "pointsTo",
+      "target": "ChangeFile",
+      "status": "implemented",
+      "evidence": [
+        "src/shared/contracts.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "Finding",
+      "relation": "boundTo",
+      "target": "Fingerprint",
+      "status": "implemented",
+      "evidence": [
+        "src/main/agents/report.ts"
+      ],
+      "cardinality": "1"
+    },
+    {
+      "source": "Finding",
+      "relation": "adoptedAs",
+      "target": "FeedbackDraft",
+      "status": "planned",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "FeedbackLoop",
+      "relation": "uses",
+      "target": "FeedbackDraft",
+      "status": "planned",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "FeedbackLoop",
+      "relation": "startsNew",
+      "target": "ReviewRun",
+      "status": "planned",
+      "evidence": [
+        "docs/PRD.md"
+      ]
+    },
+    {
+      "source": "ChangeGroup",
+      "relation": "groups",
+      "target": "ChangeFile",
+      "status": "planned",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ],
+      "cardinality": "1..*"
+    },
+    {
+      "source": "ChangeFile",
+      "relation": "hasProvenance",
+      "target": "Provenance",
+      "status": "specified",
+      "evidence": [
+        "CONTEXT.md"
+      ]
+    },
+    {
+      "source": "GitWrite",
+      "relation": "changes",
+      "target": "Staging",
+      "status": "planned",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-002",
+      "relation": "dependsOn",
+      "target": "BR-001",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-003",
+      "relation": "dependsOn",
+      "target": "BR-002",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-004",
+      "relation": "dependsOn",
+      "target": "BR-002",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-005",
+      "relation": "dependsOn",
+      "target": "BR-003",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-005",
+      "relation": "dependsOn",
+      "target": "BR-004",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-006",
+      "relation": "dependsOn",
+      "target": "BR-005",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-007",
+      "relation": "dependsOn",
+      "target": "BR-006",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-008",
+      "relation": "dependsOn",
+      "target": "BR-007",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-009",
+      "relation": "dependsOn",
+      "target": "BR-005",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-010",
+      "relation": "dependsOn",
+      "target": "BR-005",
+      "status": "specified",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-002",
+      "relation": "delivers",
+      "target": "Snapshot",
+      "status": "implemented",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-003",
+      "relation": "delivers",
+      "target": "HumanReview",
+      "status": "implemented",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-003",
+      "relation": "delivers",
+      "target": "FeedbackDraft",
+      "status": "implemented",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-004",
+      "relation": "delivers",
+      "target": "ReviewRun",
+      "status": "implemented",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-004",
+      "relation": "delivers",
+      "target": "Finding",
+      "status": "implemented",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-005",
+      "relation": "delivers",
+      "target": "FeedbackLoop",
+      "status": "planned",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-006",
+      "relation": "delivers",
+      "target": "GitWrite",
+      "status": "planned",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "source": "BR-009",
+      "relation": "delivers",
+      "target": "ChangeGroup",
+      "status": "planned",
+      "evidence": [
+        "docs/BACKLOG.md"
+      ]
+    }
+  ],
+  "constraints": [
+    {
+      "id": "R1",
+      "statement": "Agent 成功、测试通过、已暂存均不能推导人工 reviewed。",
+      "evidence": [
+        "CONTEXT.md"
+      ]
+    },
+    {
+      "id": "R2",
+      "statement": "只改变暂存位置不使人工结论失效；双侧内容变化使已有结论派生 recheck。",
+      "evidence": [
+        "src/main/services/review-store.ts"
+      ]
+    },
+    {
+      "id": "R3",
+      "statement": "无具体问题只适用于 succeeded 且范围覆盖完整、报告有效、findings 为空的任务；不代表所有风险已排除。",
+      "evidence": [
+        "CONTEXT.md",
+        "src/main/agents/report.ts"
+      ]
+    },
+    {
+      "id": "R4",
+      "statement": "旧意见需按当前内容判定 stale，禁止直接采纳；历史 run 不覆盖。stale 采纳闭环仍属 BR-005。",
+      "evidence": [
+        "docs/CONTRACTS.md",
+        "docs/BACKLOG.md"
+      ]
+    },
+    {
+      "id": "R5",
+      "statement": "保存结论或草稿先校验快照指纹与磁盘内容身份；失败返回 content_changed，不能套用到新内容。",
+      "evidence": [
+        "src/main/services/review-service.ts"
+      ]
+    },
+    {
+      "id": "R6",
+      "statement": "issue 有输入证据支持；verify 需外部依据。二者都不是人的审查结论。",
+      "evidence": [
+        "CONTEXT.md",
+        "src/main/agents/report.ts"
+      ]
+    },
+    {
+      "id": "R7",
+      "statement": "快照读取不一致重试，耗尽返回 snapshot_changed；不可审阅文件保留明确原因。",
+      "evidence": [
+        "src/main/services/snapshots.ts"
+      ]
+    },
+    {
+      "id": "R8",
+      "statement": "取消及退出清理自己创建的 CLI 进程树；重启遗留任务为 interrupted，不自动重跑。",
+      "evidence": [
+        "src/main/services/review-runs.ts",
+        "src/main/agents/runner.ts"
+      ]
+    },
+    {
+      "id": "R9",
+      "statement": "Agent Review 不写用户仓库；Git 写入只能由明确产品操作触发。",
+      "evidence": [
+        "AGENTS.md",
+        "docs/ARCHITECTURE.md"
+      ]
+    }
+  ]
+}

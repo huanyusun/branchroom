@@ -26,14 +26,18 @@ function TruncationNotice({shown, total, unit}: {shown: number; total: number; u
   );
 }
 
-function AlignedTable({rows}: {rows: AlignedRow[]}): React.JSX.Element {
+function AlignedTable({rows, focusLine}: {rows: AlignedRow[]; focusLine: number | null}): React.JSX.Element {
   return (
     <div className="diff-table" data-testid="diff-aligned" role="table" aria-label="对齐双栏 Diff">
       {rows.map((row, index) => {
+        const isFocus = focusLine !== null && 'currentLine' in row && row.currentLine === focusLine;
+        const ref = isFocus
+          ? (element: HTMLDivElement | null): void => element?.scrollIntoView({block: 'center'})
+          : undefined;
         switch (row.type) {
           case 'equal':
             return (
-              <div className="diff-row" key={index}>
+              <div className={isFocus ? 'diff-row focus-line' : 'diff-row'} key={index} ref={ref}>
                 <span className="line-no">{row.baseLine}</span>
                 <span className="line-text equal">{row.text}</span>
                 <span className="line-no">{row.currentLine}</span>
@@ -42,7 +46,7 @@ function AlignedTable({rows}: {rows: AlignedRow[]}): React.JSX.Element {
             );
           case 'modify':
             return (
-              <div className="diff-row" key={index}>
+              <div className={isFocus ? 'diff-row focus-line' : 'diff-row'} key={index} ref={ref}>
                 <span className="line-no">{row.baseLine}</span>
                 <span className="line-text del">{row.base}</span>
                 <span className="line-no">{row.currentLine}</span>
@@ -51,7 +55,7 @@ function AlignedTable({rows}: {rows: AlignedRow[]}): React.JSX.Element {
             );
           case 'del':
             return (
-              <div className="diff-row" key={index}>
+              <div className={isFocus ? 'diff-row focus-line' : 'diff-row'} key={index} ref={ref}>
                 <span className="line-no">{row.baseLine}</span>
                 <span className="line-text del">{row.text}</span>
                 <span className="line-no" />
@@ -60,7 +64,7 @@ function AlignedTable({rows}: {rows: AlignedRow[]}): React.JSX.Element {
             );
           case 'add':
             return (
-              <div className="diff-row" key={index}>
+              <div className={isFocus ? 'diff-row focus-line' : 'diff-row'} key={index} ref={ref}>
                 <span className="line-no" />
                 <span className="line-text empty" />
                 <span className="line-no">{row.currentLine}</span>
@@ -73,17 +77,23 @@ function AlignedTable({rows}: {rows: AlignedRow[]}): React.JSX.Element {
   );
 }
 
-function SingleColumn({lines, tone}: {lines: string[]; tone: 'add' | 'del'}): React.JSX.Element {
+function SingleColumn({lines, tone, focusLine}: {lines: string[]; tone: 'add' | 'del'; focusLine: number | null}): React.JSX.Element {
   const clipped = lines.length > FULLTEXT_LINE_LIMIT;
   const shown = clipped ? lines.slice(0, FULLTEXT_LINE_LIMIT) : lines;
   return (
     <div className="single-column" data-testid="diff-single" role="table" aria-label="单栏 Diff">
-      {shown.map((text, index) => (
-        <div className="single-row" key={index}>
-          <span className="line-no">{index + 1}</span>
-          <span className={`line-text ${tone}`}>{text}</span>
-        </div>
-      ))}
+      {shown.map((text, index) => {
+        const isFocus = focusLine !== null && index + 1 === focusLine;
+        const ref = isFocus
+          ? (element: HTMLDivElement | null): void => element?.scrollIntoView({block: 'center'})
+          : undefined;
+        return (
+          <div className={isFocus ? 'single-row focus-line' : 'single-row'} key={index} ref={ref}>
+            <span className="line-no">{index + 1}</span>
+            <span className={`line-text ${tone}`}>{text}</span>
+          </div>
+        );
+      })}
       {clipped && <TruncationNotice shown={FULLTEXT_LINE_LIMIT} total={lines.length} unit="行" />}
     </div>
   );
@@ -96,13 +106,13 @@ function FullText({content, tone}: {content: string; tone: 'base' | 'current'}):
       {lines.length === 0 ? (
         <div className="render-notice">（空文件）</div>
       ) : (
-        <SingleColumn lines={lines} tone={tone === 'current' ? 'add' : 'del'} />
+        <SingleColumn lines={lines} tone={tone === 'current' ? 'add' : 'del'} focusLine={null} />
       )}
     </div>
   );
 }
 
-export function DiffView({file}: {file: ChangeFile}): React.JSX.Element {
+export function DiffView({file, focusLine = null}: {file: ChangeFile; focusLine?: number | null}): React.JSX.Element {
   const [mode, setMode] = useState<ViewMode>('diff');
   const stats = fileChangeStats(file);
 
@@ -165,11 +175,11 @@ export function DiffView({file}: {file: ChangeFile}): React.JSX.Element {
         ) : alignment !== null ? (
           alignment.rows.length > ALIGNED_ROW_LIMIT ? (
             <>
-              <AlignedTable rows={alignment.rows.slice(0, ALIGNED_ROW_LIMIT)} />
+              <AlignedTable rows={alignment.rows.slice(0, ALIGNED_ROW_LIMIT)} focusLine={focusLine} />
               <TruncationNotice shown={ALIGNED_ROW_LIMIT} total={alignment.rows.length} unit="行" />
             </>
           ) : (
-            <AlignedTable rows={alignment.rows} />
+            <AlignedTable rows={alignment.rows} focusLine={focusLine} />
           )
         ) : file.reviewable && file.baseContent !== null && file.currentContent !== null ? (
           <div className="render-notice" role="note">
@@ -179,6 +189,7 @@ export function DiffView({file}: {file: ChangeFile}): React.JSX.Element {
           <SingleColumn
             lines={singleTone.content === '' ? [] : splitLines(singleTone.content)}
             tone={singleTone.tone === 'current' ? 'add' : 'del'}
+            focusLine={focusLine}
           />
         ) : (
           <div className="render-notice">没有可显示的内容。</div>

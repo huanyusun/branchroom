@@ -36,9 +36,20 @@ export function Workspace({repository}: Props): React.JSX.Element {
   const [state, setState] = useState<SnapshotState>({status: 'loading'});
   const [overview, setOverview] = useState<Overview>({reviews: {}, drafts: {}});
   const [selectedPath, setSelectedPath] = useState<string | null>(null);
+  const [focusLine, setFocusLine] = useState<number | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   // CHECK-07：只有最后一次请求的结果允许落地，切换仓库/快速刷新不会互相覆盖
   const guard = useRef(createLatestGuard());
+
+  const selectFile = useCallback((path: string, line?: number) => {
+    setSelectedPath(path);
+    setFocusLine(line ?? null);
+  }, []);
+
+  const reloadOverview = useCallback(async () => {
+    const result = await window.branchroom.listReviewEntries(repository.id);
+    if (result.ok) setOverview(result.data);
+  }, [repository.id]);
 
   const load = useCallback(async () => {
     const token = guard.current.begin();
@@ -146,7 +157,7 @@ export function Workspace({repository}: Props): React.JSX.Element {
           </aside>
           {selected !== null ? (
             <div className="diff-column">
-              <DiffView file={selected} />
+              <DiffView file={selected} focusLine={focusLine} />
               {selected.reviewable && (
                 <ReviewPanel
                   key={selected.path}
@@ -163,7 +174,8 @@ export function Workspace({repository}: Props): React.JSX.Element {
                 snapshotId={state.snapshot.id}
                 files={state.snapshot.files}
                 selectedFile={selected}
-                onSelectFile={setSelectedPath}
+                onSelectFile={selectFile}
+                onOverviewChanged={() => void reloadOverview()}
               />
             </div>
           ) : (

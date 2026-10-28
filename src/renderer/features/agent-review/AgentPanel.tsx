@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AgentCapability, ChangeFile, ReviewRun } from '../../../shared/contracts';
+import type { AgentCapability, ChangeFile, Finding, ReviewRun } from '../../../shared/contracts';
 
 interface Props {
   repositoryId: string;
   snapshotId: string;
   files: ChangeFile[];
   selectedFile: ChangeFile | null;
-  onSelectFile: (path: string) => void;
+  onSelectFile: (path: string, line?: number) => void;
+  /** 采纳产生草稿后由父级刷新审查概览。 */
+  onOverviewChanged: () => void;
 }
 
 type ActionError = {code: string; message: string};
@@ -28,13 +30,24 @@ function formatElapsed(startedAt: string | null, finishedAt: string | null): str
   return seconds >= 60 ? `${Math.floor(seconds / 60)}分${seconds % 60}秒` : `${seconds}秒`;
 }
 
-/** Agent Review 面板：能力检测、发起审查、进度/取消、意见列表与历史 run。 */
-export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSelectFile}: Props): React.JSX.Element {
+function composeAdoptedNote(finding: Finding): string {
+  return [
+    `[Agent 意见 · ${finding.priority} ${finding.kind} · ${finding.fileId}:${finding.startLine}] ${finding.title}`,
+    `影响：${finding.body}`,
+    `依据：${finding.evidence}`,
+    `建议：${finding.suggestion}`
+  ].join('\n');
+}
+
+/** Agent Review 面板：能力检测、发起审查（含只复审待复审文件）、意见定位/采纳与历史 run。 */
+export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSelectFile, onOverviewChanged}: Props): React.JSX.Element {
   const [agents, setAgents] = useState<AgentCapability[]>([]);
   const [runs, setRuns] = useState<ReviewRun[]>([]);
   const [viewRunId, setViewRunId] = useState<string | null>(null);
+  const [expandedFindingId, setExpandedFindingId] = useState<string | null>(null);
   const [provider, setProvider] = useState<AgentCapability['provider'] | null>(null);
   const [starting, setStarting] = useState(false);
+  const [adoptedFindingId, setAdoptedFindingId] = useState<string | null>(null);
   const [error, setError] = useState<ActionError | null>(null);
 
   const reload = useCallback(async () => {
@@ -61,7 +74,6 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
     void reload();
   }, [reload]);
 
-  // 主进程推送的 run 状态更新
   useEffect(() => {
     const unsubscribe = window.branchroom.onReviewRun((run) => {
       if (run.repoId !== repositoryId) return;
@@ -78,14 +90,17 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
     () => files.filter((file) => file.reviewable).map((file) => file.id),
     [files]
   );
+  const recheckIds = useMemo(
+    () => files.filter((file) => file.reviewState === 'recheck' && file.reviewable).map((file) => file.id),
+    [files]
+  );
 
   const start = useCallback(
-    async (fileId: string | null) => {
-      if (provider === null) return;
+    async (ids: string[]) => {
+      if (provider === null || ids.length === 0) return;
       setStarting(true);
       setError(null);
       try {
-        const ids = fileId === null ? reviewableIds : [fileId];
         const result = await window.branchroom.startReview({
           repoId: repositoryId,
           snapshotId,
@@ -94,6 +109,8 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
         });
         if (result.ok) {
           setViewRunId(result.data.id);
+          setExpandedFindingId(null);
+          setAdoptedFindingId(null);
           setRuns((current) => [result.data, ...current.filter((item) => item.id !== result.data.id)]);
         } else {
           setError({code: result.error.code, message: result.error.message});
@@ -102,7 +119,7 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
         setStarting(false);
       }
     },
-    [provider, repositoryId, snapshotId, reviewableIds]
+    [provider, repositoryId, snapshotId]
   );
 
   const cancel = useCallback(async (runId: string) => {
@@ -112,9 +129,36 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
     }
   }, []);
 
+  const adopt = useCallback(
+    async (finding: Finding) => {
+      const currentFile = files.find((file) => file.id === finding.fileId);
+      if (currentFile === undefined) return;
+      const result = await window.branchroom.saveDraft({
+        repoId: repositoryId,
+        snapshotId,
+        fileId: currentFile.id,
+        expectedFingerprint: currentFile.fingerprint,
+        note: composeAdoptedNote(finding)
+      });
+      if (result.ok) {
+        setAdoptedFindingId(finding.id);
+        onOverviewChanged();
+      } else {
+        setError({code: result.error.code, message: result.error.message});
+      }
+    },
+    [files, repositoryId, snapshotId, onOverviewChanged]
+  );
+
   const viewingRun = runs.find((run) => run.id === viewRunId) ?? runs[0] ?? null;
   const activeRun = runs.find((run) => run.status === 'queued' || run.status === 'running') ?? null;
   const availableAgents = agents.filter((agent) => agent.status === 'available');
+
+  const findingsOf = (run: ReviewRun | null): Finding[] => run?.report?.findings ?? [];
+  const isStale = (finding: Finding): boolean => {
+    const file = files.find((item) => item.id === finding.fileId);
+    return file === undefined || file.fingerprint !== finding.fingerprint;
+  };
 
   return (
     <section className="panel agent-panel" aria-label="Agent Review">
@@ -154,15 +198,24 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
             type="button"
             className="btn btn-primary"
             disabled={starting || provider === null || reviewableIds.length === 0 || activeRun !== null}
-            onClick={() => void start(null)}
+            onClick={() => void start(reviewableIds)}
           >
             {activeRun !== null ? '审查进行中…' : `审查全部变更（${reviewableIds.length} 个文件）`}
           </button>
           <button
             type="button"
             className="btn btn-secondary"
+            disabled={starting || provider === null || recheckIds.length === 0 || activeRun !== null}
+            title="只对标记后内容又变化的文件重新审查"
+            onClick={() => void start(recheckIds)}
+          >
+            复审待复审文件（{recheckIds.length}）
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
             disabled={starting || provider === null || selectedFile === null || !selectedFile.reviewable || activeRun !== null}
-            onClick={() => void start(selectedFile!.id)}
+            onClick={() => void start([selectedFile!.id])}
           >
             审查当前文件
           </button>
@@ -205,22 +258,60 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
             </div>
             {viewingRun.report !== null && (
               <ul className="finding-list">
-                {viewingRun.report.findings.map((finding) => (
-                  <li key={finding.id}>
-                    <button
-                      type="button"
-                      className="finding-item"
-                      onClick={() => onSelectFile(finding.fileId)}
-                      title={`${finding.fileId}:${finding.startLine}`}
-                    >
-                      <span className={`finding-priority priority-${finding.priority.toLowerCase()}`}>
-                        {finding.priority} {finding.kind === 'issue' ? 'issue' : 'verify'}
-                      </span>
-                      <span className="mono finding-loc">{finding.fileId}:{finding.startLine}</span>
-                      <span className="finding-title">{finding.title}</span>
-                    </button>
-                  </li>
-                ))}
+                {findingsOf(viewingRun).map((finding) => {
+                  const stale = isStale(finding);
+                  const expanded = expandedFindingId === finding.id;
+                  return (
+                    <li key={finding.id}>
+                      <button
+                        type="button"
+                        className="finding-item"
+                        onClick={() => {
+                          setExpandedFindingId(expanded ? null : finding.id);
+                          onSelectFile(finding.fileId, finding.startLine); // 一击定位
+                        }}
+                        title={`${finding.fileId}:${finding.startLine}`}
+                      >
+                        <span className={`finding-priority priority-${finding.priority.toLowerCase()}`}>
+                          {finding.priority} {finding.kind === 'issue' ? 'issue' : 'verify'}
+                        </span>
+                        {stale && <span className="finding-stale-tag" title="意见基于旧版本内容">旧</span>}
+                        <span className="mono finding-loc">{finding.fileId}:{finding.startLine}</span>
+                        <span className="finding-title">{finding.title}</span>
+                      </button>
+                      {expanded && (
+                        <div className="finding-detail" aria-label="意见详情">
+                          {stale && (
+                            <div className="finding-stale-banner" role="note">
+                              此意见基于旧版本内容，与当前文件不一致；已阻止直接采纳。请重新审查或手动处理。
+                            </div>
+                          )}
+                          <p className="finding-text">
+                            <span className="muted">类型：</span>
+                            {finding.priority} · {finding.kind === 'issue' ? 'issue（输入可直接证明的问题）' : 'verify（需外部依据确认）'}
+                          </p>
+                          <p className="finding-text"><span className="muted">影响：</span>{finding.body}</p>
+                          <p className="finding-text"><span className="muted">依据：</span>{finding.evidence}</p>
+                          <p className="finding-text"><span className="muted">建议：</span>{finding.suggestion}</p>
+                          <div className="finding-actions">
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              disabled={stale}
+                              title={stale ? '内容已变化，阻止直接采纳' : '把意见转为该文件的反馈草稿，仍需你确认'}
+                              onClick={() => void adopt(finding)}
+                            >
+                              {adoptedFindingId === finding.id ? '已转为草稿 ✓' : '采纳为反馈草稿'}
+                            </button>
+                            <span className="muted finding-adopt-hint">
+                              采纳只生成草稿，不会修改仓库或直接变成审查结论。
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </li>
+                  );
+                })}
               </ul>
             )}
           </>
@@ -234,7 +325,11 @@ export function AgentPanel({repositoryId, snapshotId, files, selectedFile, onSel
                 key={run.id}
                 type="button"
                 className={(viewRunId ?? runs[0]?.id) === run.id ? 'run-history-item active' : 'run-history-item'}
-                onClick={() => setViewRunId(run.id)}
+                onClick={() => {
+                  setViewRunId(run.id);
+                  setExpandedFindingId(null);
+                  setAdoptedFindingId(null);
+                }}
               >
                 #{runs.length - index} {run.status}
               </button>

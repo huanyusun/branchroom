@@ -11,6 +11,7 @@
 | Claude Code 接手与可直接使用的开工提示词 | [接手说明](docs/HANDOFF-CLAUDE.md) |
 | 用户确认的需求与首版范围 | [产品需求](docs/PRD.md) |
 | 领域概念与状态约束 | [上下文](CONTEXT.md) |
+| 领域本体、关系、规则与交付图谱 | [项目图谱](docs/ONTOLOGY.md) |
 | 桌面应用架构与目录规划 | [架构](docs/ARCHITECTURE.md) |
 | IPC 与服务契约 | [接口契约](docs/CONTRACTS.md) |
 | 开发次序与验收 | [实施计划](docs/superpowers/plans/2026-10-28-first-desktop-slice.md) |
