@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "modelVersion": "0.2-draft",
+  "modelVersion": "0.2-draft-with-accepted-policies",
   "asOf": "2026-10-28",
   "scope": "Branchroom 的内容版本、审查行为、断言及适用性；含独立工程追溯层",
   "formalism": "显式类/实例、关系域值域、值属性及文字约束；未转换为 OWL，未进行逻辑完备性证明",
@@ -847,7 +847,8 @@
         "expectedAnswer": "不必相同：当前人工策略仍适用，Agent 指纹策略判 stale。",
         "scenarios": [
           "S-head"
-        ]
+        ],
+        "acceptedDecisionRef": "AP-003"
       },
       {
         "id": "CQ5",
@@ -855,7 +856,8 @@
         "expectedAnswer": "不能；当前路径键策略不自动迁移，连续身份规则尚待决定。",
         "scenarios": [
           "S-rename"
-        ]
+        ],
+        "acceptedDecisionRef": "AP-001"
       },
       {
         "id": "CQ6",
@@ -914,7 +916,14 @@
           "worktreeStatus"
         ],
         "unknownWhen": "任何一侧 unavailable 或目标信息不足",
-        "implementationDifference": "近似现有人工内容匹配规则，但显式区分 absent/text-empty，并保留 unknown；不是现有函数的逐字模拟。"
+        "implementationDifference": "近似现有人工内容匹配规则，但显式区分 absent/text-empty，并保留 unknown；不是现有函数的逐字模拟。",
+        "scope": "file-local-comparison; does not establish cross-file impact coverage",
+        "acceptedDecisionRefs": [
+          "AP-001",
+          "AP-002",
+          "AP-003"
+        ],
+        "note": "仅所引用的三项产品规则已确认；带状态内容值与 unknown 等补充语义仍为本体提案。"
       },
       {
         "id": "agent-fingerprint-v1-tagged",
@@ -928,7 +937,43 @@
           "worktreeStatus"
         ],
         "unknownWhen": "任何一侧 unavailable 或目标信息不足",
-        "implementationDifference": "对应现有指纹包含 HEAD 的政策方向；这里直接比较已知值，不使用示例 hash，也不模拟所有 null 编码细节。"
+        "implementationDifference": "对应现有指纹包含 HEAD 的政策方向；这里直接比较已知值，不使用示例 hash，也不模拟所有 null 编码细节。",
+        "scope": "file-local-comparison; does not establish cross-file impact coverage",
+        "acceptedDecisionRefs": [
+          "AP-001",
+          "AP-002",
+          "AP-003"
+        ],
+        "note": "仅所引用的三项产品规则已确认；带状态内容值与 unknown 等补充语义仍为本体提案。"
+      }
+    ],
+    "acceptedProductDecisions": [
+      {
+        "id": "AP-001",
+        "status": "accepted",
+        "statement": "只重命名仍需重新审查，不自动迁移旧路径结论；新路径 pending 不等于继承 reviewed。",
+        "sources": [
+          "docs/adr/0002-review-applicability.md",
+          "CONTEXT.md"
+        ]
+      },
+      {
+        "id": "AP-002",
+        "status": "accepted",
+        "statement": "文件标记仅覆盖自身双侧比较；界面需说明关联影响未被保证，允许用户主动复审；首版不自动传播依赖失效。",
+        "sources": [
+          "docs/adr/0002-review-applicability.md",
+          "CONTEXT.md"
+        ]
+      },
+      {
+        "id": "AP-003",
+        "status": "accepted",
+        "statement": "同工作区同路径、双侧内容不变而 HEAD 改变时，人工判断保留；Agent 意见按指纹标旧并阻止采纳，历史 run 不改写。",
+        "sources": [
+          "docs/adr/0002-review-applicability.md",
+          "CONTEXT.md"
+        ]
       }
     ]
   },

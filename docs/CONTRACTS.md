@@ -122,3 +122,11 @@ export interface BranchroomAPI {
 运行时校验：完整 coverage；schema；真实范围内路径/ID；对应 side 的合法行号；fingerprint 绑定；优先级枚举；字符串非空；输出大小；重复意见。报告覆盖不完整返回 invalid_report 或显式部分覆盖状态，不能显示为整批通过。
 
 stale 是 Finding 与当前 Snapshot 的匹配结果，不改写历史 run。过期后禁用直接采用；用户可以查看历史上下文或重新审查。
+
+## 首版适用性政策（已确认）
+
+规则来源：[ADR 0002](adr/0002-review-applicability.md)。这是产品约定，不新增 IPC 方法。
+
+- rename 不迁移旧路径人工结论；新路径未标记时为 pending，需重新审查，不强制派生 recheck。
+- 人工文件标记只覆盖该文件双侧比较，不承诺跨文件关联影响。产品需说明覆盖范围，并允许用户主动发起复审。
+- 同工作区同路径且双侧内容不变时，HEAD 引用变化不使人工判断失效；Agent 仍按包含 HEAD 的 fingerprint 派生 stale，禁止直接采纳。该匹配不改变历史报告或 run.status。
