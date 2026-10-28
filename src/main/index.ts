@@ -8,6 +8,8 @@ import {
 import { registerRepositoryHandlers } from './ipc/handlers';
 import { createRecentStore } from './services/recent-store';
 import { RepositoryRegistry } from './services/repositories';
+import { createReviewStore } from './services/review-store';
+import { ReviewService, SnapshotRegistry } from './services/review-service';
 
 const isDev = !app.isPackaged;
 const rendererRoot = join(import.meta.dirname, '../renderer');
@@ -58,10 +60,13 @@ function createWindow(): BrowserWindow {
 app.whenReady().then(() => {
   applyContentSecurityPolicy(isDev);
   registerBranchroomProtocol(rendererRoot);
+  const registry = new RepositoryRegistry();
+  const reviewStore = createReviewStore(join(app.getPath('userData'), 'reviews'));
   registerRepositoryHandlers(ipcMain, {
     getWindow: () => BrowserWindow.getAllWindows()[0] ?? null,
     recentStore: createRecentStore(join(app.getPath('userData'), 'recent-repositories.json')),
-    registry: new RepositoryRegistry(),
+    registry,
+    reviewService: new ReviewService(reviewStore, new SnapshotRegistry(), registry),
     isDev
   });
   createWindow();

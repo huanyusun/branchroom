@@ -520,6 +520,110 @@ code {
   background: color-mix(in srgb, var(--bg) 40%, transparent);
 }
 
+/* 审查面板（BR-003） */
+.diff-column {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 0;
+}
+
+.diff-column .diff-pane {
+  flex: 1;
+  min-height: 0;
+}
+
+.review-glyph {
+  flex: none;
+  width: 14px;
+  text-align: center;
+  font-size: 12px;
+}
+
+.warning { color: var(--warning); }
+
+.review-panel {
+  flex: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.review-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.review-state-label {
+  font-size: 12.5px;
+}
+
+.review-banner {
+  padding: 6px 10px;
+  border: 1px solid color-mix(in srgb, var(--warning) 55%, transparent);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  color: var(--warning);
+  font-size: 12px;
+  user-select: text;
+}
+
+.review-note {
+  resize: vertical;
+  min-height: 64px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.55;
+  padding: 8px 10px;
+  user-select: text;
+}
+
+.review-note:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.review-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-hint {
+  font-size: 11.5px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-error {
+  padding: 6px 10px;
+  border: 1px solid var(--danger);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--danger) 12%, var(--panel));
+  color: var(--text);
+  font-size: 12px;
+  user-select: text;
+}
+
 /* 错误提示 */
 .error-banner {
   flex: none;

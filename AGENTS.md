@@ -2,7 +2,7 @@
 
 ## 当前工作阶段
 
-本轮用户要求只完成开发前期准备，后续由 Claude Code 开始实现。准备阶段不要自动启动完整产品开发。用户在后续明确要求继续开发时，按 docs/HANDOFF-CLAUDE.md 和 docs/BACKLOG.md 从 BR-001 开始。
+正式桌面应用在持续实现中：BR-001 至 BR-003 已完成（证据见 docs/BACKLOG.md），当前推进 BR-004（Agent Review）。继续开发时按 docs/HANDOFF-CLAUDE.md 和 docs/BACKLOG.md 的次序执行；独立问题审计见 docs/PROJECT-ISSUES.md。
 
 ## 产品事实
 

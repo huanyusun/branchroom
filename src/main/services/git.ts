@@ -52,7 +52,7 @@ export function classifyGitError(error: unknown, args: string[]): RepositoryErro
 export async function runGit(
   root: string,
   args: string[],
-  options?: {maxBuffer?: number}
+  options?: {maxBuffer?: number; overflowCode?: string}
 ): Promise<string> {
   try {
     const {stdout} = await execFileP('git', args, {
@@ -61,6 +61,17 @@ export async function runGit(
     });
     return stdout;
   } catch (error) {
+    // 输出超过缓冲上限是资源限制而非仓库故障：用专属错误码暴露，避免被吞成 git_failed
+    if (
+      options?.overflowCode !== undefined
+      && (error as {code?: unknown})?.code === 'ERR_CHILD_PROCESS_STDIO_MAXBUFFER'
+    ) {
+      throw new RepositoryError(
+        options.overflowCode,
+        `git ${args.join(' ')} 的输出超过缓冲上限，未完成读取。`,
+        {retryable: false, cause: error}
+      );
+    }
     throw classifyGitError(error, args);
   }
 }
@@ -125,7 +136,7 @@ export function parseStatusZ(output: string): StatusRecord[] {
         code: 'changed',
         indexStatus: fields[1]![0]!,
         worktreeStatus: fields[1]![1]!,
-        submodule: fields[2] === 'S',
+        submodule: fields[2]?.startsWith('S') === true,
         headBlob: hashOrNull(fields[6]),
         indexBlob: hashOrNull(fields[7]),
         path: fields.slice(8).join(' '),
@@ -140,7 +151,7 @@ export function parseStatusZ(output: string): StatusRecord[] {
         code: 'renamed',
         indexStatus: fields[1]![0]!,
         worktreeStatus: fields[1]![1]!,
-        submodule: fields[2] === 'S',
+        submodule: fields[2]?.startsWith('S') === true,
         headBlob: hashOrNull(fields[6]),
         indexBlob: hashOrNull(fields[7]),
         path: fields.slice(9).join(' '),
@@ -153,7 +164,7 @@ export function parseStatusZ(output: string): StatusRecord[] {
         code: 'unmerged',
         indexStatus: fields[1]![0]!,
         worktreeStatus: fields[1]![1]!,
-        submodule: fields[2] === 'S',
+        submodule: fields[2]?.startsWith('S') === true,
         headBlob: null,
         indexBlob: null,
         path: fields.slice(10).join(' '),
@@ -194,9 +205,59 @@ export interface PatchChunk {
   binary: boolean;
 }
 
+/** 解码 Git C 风格引用路径（"tab\tname" 等）；quotePath 关闭时 Tab/引号/换行仍会被引用。 */
+function decodeQuotedPath(raw: string): string {
+  if (!raw.startsWith('"') || !raw.endsWith('"') || raw.length < 2) return raw;
+  const body = raw.slice(1, -1);
+  let result = '';
+  for (let i = 0; i < body.length; i++) {
+    const char = body[i]!;
+    if (char !== '\\') {
+      result += char;
+      continue;
+    }
+    const next = body[i + 1];
+    if (next === undefined) break;
+    switch (next) {
+      case 'n': result += '\n'; i += 1; break;
+      case 't': result += '\t'; i += 1; break;
+      case 'r': result += '\r'; i += 1; break;
+      case '"': result += '"'; i += 1; break;
+      case '\\': result += '\\'; i += 1; break;
+      default: {
+        // 八进制转义 \ooo（UTF-8 字节）；逐字节收集再按 UTF-8 解码
+        if (/^[0-7]{1,3}$/.test(body.slice(i + 1, i + 4))) {
+          const bytes: number[] = [];
+          let cursor = i + 1;
+          while (cursor < body.length && body[cursor] === '\\' && /^[0-7]{1,3}$/.test(body.slice(cursor + 1, cursor + 4))) {
+            bytes.push(Number.parseInt(body.slice(cursor + 1, cursor + 4), 8));
+            cursor += 4;
+          }
+          result += Buffer.from(bytes).toString('utf8');
+          i = cursor - 1;
+        } else {
+          result += next;
+          i += 1;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+/** 从 `+++ b/...` 行提取目标路径：引用路径的 a//b/ 前缀在引号内，先解码再剥离。 */
+function pathFromMarkerLine(line: string, prefix: string): string | null {
+  const rest = line.slice(prefix.length);
+  if (rest === '/dev/null' || rest === '') return null;
+  const decoded = rest.startsWith('"') ? decodeQuotedPath(rest) : rest;
+  if (decoded.startsWith('b/')) return decoded.slice(2);
+  return decoded;
+}
+
 /**
  * 把整棵树的 `git diff` 输出按文件拆分。
- * key 优先取 `+++ b/<path>`（重命名后新路径）；删除文件回退到 `diff --git` 头的 b 路径。
+ * key 优先取 `+++ b/<path>`（重命名后新路径，解码 C 风格引用）；
+ * 删除文件回退到 `diff --git` 头的 b 路径。
  * 二进制块标记 binary，不产出可用文本 patch。
  */
 export function splitPatchByFile(diff: string): Map<string, PatchChunk> {
@@ -218,10 +279,11 @@ export function splitPatchByFile(diff: string): Map<string, PatchChunk> {
       open = true;
       buffer = [line];
       binary = false;
-      // 回退 key：默认头形如 "diff --git a/<old> b/<new>"；取最后一个 " b/" 之后的路径
-      const marker = ' b/';
-      const at = line.lastIndexOf(marker);
-      key = at >= 0 ? line.slice(at + marker.length) : '';
+      // 回退 key（用于删除文件 +++ /dev/null 的场景）：取最后的 " b/" 或 '" b/' 之后的部分
+      const plain = line.lastIndexOf(' b/');
+      const quoted = line.lastIndexOf('" b/');
+      const at = Math.max(plain, quoted);
+      key = at >= 0 ? decodeQuotedPath(line.slice(at + 3)) : '';
       continue;
     }
     if (!open) continue;
@@ -229,9 +291,8 @@ export function splitPatchByFile(diff: string): Map<string, PatchChunk> {
     if (line.startsWith('Binary files ') || line.startsWith('GIT binary patch')) {
       binary = true;
     } else if (line.startsWith('+++ ')) {
-      const target = line.slice(4);
-      if (target.startsWith('b/')) key = target.slice(2);
-      else if (target !== '/dev/null') key = target;
+      const target = pathFromMarkerLine(line, '+++ ');
+      if (target !== null) key = target;
     }
   }
   flush();

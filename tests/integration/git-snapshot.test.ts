@@ -4,8 +4,9 @@ import { execFile } from 'node:child_process';
 import { mkdtemp, rm, writeFile, mkdir, symlink, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { openRepository } from '../../src/main/services/repositories';
+import { openRepository, RepositoryError } from '../../src/main/services/repositories';
 import { buildSnapshot, SnapshotError } from '../../src/main/services/snapshots';
+import { runGit } from '../../src/main/services/git';
 import type { Repository } from '../../src/shared/contracts';
 
 const exec = promisify(execFile);
@@ -256,8 +257,7 @@ test('persistent HEAD movement returns snapshot_changed instead of a mixed snaps
   ).rejects.toSatisfy((error: unknown) => error instanceof SnapshotError && error.code === 'snapshot_changed');
 });
 
-test('snapshot id is unique per capture', async () => {
-  await writeFile(join(root, 'x.txt'), 'x\n', 'utf8');
+test('snapshot id is unique per capture', async () => {  await writeFile(join(root, 'x.txt'), 'x\n', 'utf8');
   const a = await buildSnapshot(repo);
   await writeFile(join(root, 'x.txt'), 'y\n', 'utf8');
   const b = await buildSnapshot(repo);
@@ -271,4 +271,35 @@ test('reads Chinese and space file names exactly', async () => {
   const snap = await buildSnapshot(repo);
   expect(snap.files.map((f) => f.path)).toEqual(['设计 文档/说明 v2.md']);
   expect((await readFile(join(root, '设计 文档/说明 v2.md'), 'utf8'))).toBe(snap.files[0]!.currentContent);
+});
+
+// CHECK-06：Tab 等特殊字符路径会被 Git C 风格引用，patch 仍必须能关联
+test('paths with tabs keep their patch via quoted-path decoding', async () => {
+  const weird = join(root, 'tab\t名字.md');
+  await writeFile(weird, 'v1\n', 'utf8');
+  await exec('git', [...GIT_AUTHOR, 'add', '-A'], {cwd: root});
+  await exec('git', [...GIT_AUTHOR, 'commit', '-q', '-m', 'base'], {cwd: root});
+  await writeFile(weird, 'v2\n', 'utf8');
+
+  const snap = await buildSnapshot(repo);
+  const file = snap.files.find((f) => f.path === 'tab\t名字.md');
+  expect(file).toBeDefined();
+  expect(file!.reviewable).toBe(true);
+  expect(file!.patch).not.toBeNull();
+  expect(file!.patch).toContain('-v1');
+  expect(file!.patch).toContain('+v2');
+});
+
+// CHECK-09：diff 输出超过缓冲上限时必须报 diff_too_large，而不是被包装吞掉
+test('diff buffer overflow maps to diff_too_large', async () => {
+  await writeFile(join(root, 'big.txt'), `${'x'.repeat(1000)}\n`, 'utf8');
+  await exec('git', [...GIT_AUTHOR, 'add', '-A'], {cwd: root});
+  await exec('git', [...GIT_AUTHOR, 'commit', '-q', '-m', 'base'], {cwd: root});
+  await writeFile(join(root, 'big.txt'), `${'y'.repeat(1000)}\n`, 'utf8');
+
+  await expect(
+    runGit(root, ['diff', 'HEAD'], {maxBuffer: 16, overflowCode: 'diff_too_large'})
+  ).rejects.toSatisfy(
+    (error: unknown) => error instanceof RepositoryError && error.code === 'diff_too_large'
+  );
 });

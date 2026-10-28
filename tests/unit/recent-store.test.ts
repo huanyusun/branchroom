@@ -83,3 +83,63 @@ test('recovers from a corrupt file by backing it up and starting empty', async (
   const raw = JSON.parse(await readFile(filePath, 'utf8')) as { schemaVersion: number };
   expect(raw.schemaVersion).toBe(1);
 });
+
+test('concurrent adds do not lose entries or fail', async () => {
+  const store = createRecentStore(filePath);
+  const results = await Promise.allSettled([
+    store.add(fakeRepository('/tmp/a')),
+    store.add(fakeRepository('/tmp/b')),
+    store.add(fakeRepository('/tmp/c'))
+  ]);
+  expect(results.every((r) => r.status === 'fulfilled')).toBe(true);
+  const entries = await store.list();
+  expect(entries.map((e) => e.repository.root).sort()).toEqual(['/tmp/a', '/tmp/b', '/tmp/c']);
+});
+
+test('concurrent add and remove keep consistent state', async () => {
+  const store = createRecentStore(filePath);
+  await store.add(fakeRepository('/tmp/keep'));
+  await store.add(fakeRepository('/tmp/kill'));
+  await Promise.allSettled([
+    store.add(fakeRepository('/tmp/newcomer')),
+    store.remove('id-/tmp/kill')
+  ]);
+  const roots = (await store.list()).map((e) => e.repository.root).sort();
+  expect(roots).toEqual(['/tmp/keep', '/tmp/newcomer']);
+});
+
+test('shallow entries with missing fields are rejected as corrupt', async () => {
+  await writeFile(
+    filePath,
+    JSON.stringify({schemaVersion: 1, entries: [{repository: {}, lastOpenedAt: 'bad'}]}),
+    'utf8'
+  );
+  const store = createRecentStore(filePath);
+  expect(await store.list()).toEqual([]);
+  const files = await readdir(dir);
+  expect(files.some((name) => name.includes('.corrupt-'))).toBe(true);
+});
+
+test('entries with non-string required fields are rejected', async () => {
+  await writeFile(
+    filePath,
+    JSON.stringify({
+      schemaVersion: 1,
+      entries: [{
+        repository: {id: 42, name: null, root: '', gitDir: '', commonGitDir: '', branch: 1, head: 0},
+        lastOpenedAt: 'not-a-date'
+      }]
+    }),
+    'utf8'
+  );
+  const store = createRecentStore(filePath);
+  expect(await store.list()).toEqual([]);
+});
+
+test('read failures other than a missing file propagate instead of faking empty', async () => {
+  const {mkdir} = await import('node:fs/promises');
+  // 让存储路径指向一个目录：readFile 会抛 EISDIR 而不是 ENOENT
+  await mkdir(filePath, {recursive: true});
+  const store = createRecentStore(filePath);
+  await expect(store.list()).rejects.toThrow();
+});

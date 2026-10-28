@@ -77,19 +77,36 @@ export function alignLines(base: string[], current: string[]): Alignment {
   return {rows, additions, deletions};
 }
 
-function countLines(text: string): number {
-  if (text === '') return 0;
-  return text.split('\n').length;
+/**
+ * 按显示语义拆分内容行：单个结尾换行不产生幻影空行；
+ * 空内容没有行；缺结尾换行时最后一行仍计入。
+ */
+export function splitContentLines(text: string): string[] {
+  if (text === '') return [];
+  const body = text.endsWith('\n') ? text.slice(0, -1) : text;
+  return body.split('\n');
 }
 
-/** 统计单个文件的 +/- 行数：优先解析 patch；新增/删除文件回退到内容行数。 */
+function countLines(text: string): number {
+  return splitContentLines(text).length;
+}
+
+/** 统计单个文件的 +/- 行数：优先在 hunk 范围内解析 patch；新增/删除文件回退到内容行数。 */
 export function fileChangeStats(file: ChangeFile): {additions: number | null; deletions: number | null} {
   if (file.patch !== null) {
     let additions = 0;
     let deletions = 0;
+    let inHunk = false;
     for (const line of file.patch.split('\n')) {
-      if (line.startsWith('+') && !line.startsWith('+++')) additions += 1;
-      else if (line.startsWith('-') && !line.startsWith('---')) deletions += 1;
+      if (line.startsWith('diff --git ')) {
+        inHunk = false;
+      } else if (line.startsWith('@@')) {
+        inHunk = true;
+      } else if (inHunk) {
+        // hunk 内不再特判 +++/---（正文可以以 + 开头）；元数据行（\、rename from 等）不在此范围
+        if (line.startsWith('+')) additions += 1;
+        else if (line.startsWith('-')) deletions += 1;
+      }
     }
     return {additions, deletions};
   }

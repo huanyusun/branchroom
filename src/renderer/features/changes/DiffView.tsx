@@ -1,14 +1,21 @@
 import { useMemo, useState } from 'react';
 import type { ChangeFile } from '../../../shared/contracts';
-import { alignLines, fileChangeStats, type AlignedRow } from '../../lib/diff';
+import { alignLines, fileChangeStats, splitContentLines, type AlignedRow } from '../../lib/diff';
 
 const ALIGNED_ROW_LIMIT = 4000;
 const FULLTEXT_LINE_LIMIT = 20_000;
+/** 超过此行数就不再同步做全量对齐计算（CHECK-08：渲染上限必须约束计算成本） */
+const ALIGN_INPUT_LINE_LIMIT = 20_000;
 
 type ViewMode = 'diff' | 'fulltext';
 
 function splitLines(text: string): string[] {
-  return text.split('\n');
+  return splitContentLines(text);
+}
+
+/** 计算预算：两侧任一超行数上限，或任一为空但另一侧巨大，都不做全量对齐。 */
+export function shouldSkipAlignment(baseLineCount: number, currentLineCount: number): boolean {
+  return baseLineCount > ALIGN_INPUT_LINE_LIMIT || currentLineCount > ALIGN_INPUT_LINE_LIMIT;
 }
 
 function TruncationNotice({shown, total, unit}: {shown: number; total: number; unit: string}): React.JSX.Element {
@@ -101,8 +108,12 @@ export function DiffView({file}: {file: ChangeFile}): React.JSX.Element {
 
   const alignment = useMemo(() => {
     if (mode !== 'diff') return null;
+    if (!file.reviewable) return null;
     if (file.baseContent === null || file.currentContent === null) return null;
-    return alignLines(splitLines(file.baseContent), splitLines(file.currentContent));
+    const baseLines = splitLines(file.baseContent);
+    const currentLines = splitLines(file.currentContent);
+    if (shouldSkipAlignment(baseLines.length, currentLines.length)) return null;
+    return alignLines(baseLines, currentLines);
   }, [file, mode]);
 
   const singleTone =
@@ -160,6 +171,10 @@ export function DiffView({file}: {file: ChangeFile}): React.JSX.Element {
           ) : (
             <AlignedTable rows={alignment.rows} />
           )
+        ) : file.reviewable && file.baseContent !== null && file.currentContent !== null ? (
+          <div className="render-notice" role="note">
+            内容超过对齐计算上限（{ALIGN_INPUT_LINE_LIMIT} 行/侧），未生成对齐视图；请使用全文查看，完整数据以仓库为准。
+          </div>
         ) : singleTone.content !== null ? (
           <SingleColumn
             lines={singleTone.content === '' ? [] : splitLines(singleTone.content)}

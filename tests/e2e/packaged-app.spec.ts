@@ -9,9 +9,17 @@ import {join} from 'node:path';
 const exec = promisify(execFile);
 const packagedBinary = join(process.cwd(), 'dist/mac/Branchroom.app/Contents/MacOS/Branchroom');
 const packagedAvailable = existsSync(packagedBinary);
+// verify:packaged 流程强制要求先完成 package:mac，缺失即失败而不是跳过
+const required = process.env.BRANCHROOM_REQUIRED_PACKAGED === '1';
 
 test.describe('打包产物验证', () => {
-  test.skip(!packagedAvailable, '未找到 dist/mac/Branchroom.app，先运行 bun run package:mac');
+  test.skip(!packagedAvailable && !required, '未找到 dist/mac/Branchroom.app，先运行 bun run package:mac');
+
+  test.beforeAll(() => {
+    if (required && !packagedAvailable) {
+      throw new Error('verify:packaged 要求 dist/mac/Branchroom.app 存在：先运行 bun run package:mac');
+    }
+  });
 
   /** 对正式打包的应用做一次真实启动：打开仓库 → 关闭 → 重开。 */
   test('packaged app launches, opens a repository, and relaunches', async () => {

@@ -1,9 +1,74 @@
 import { describe, expect, test } from 'vitest';
-import { alignLines } from '../../src/renderer/lib/diff';
+import { alignLines, fileChangeStats, splitContentLines } from '../../src/renderer/lib/diff';
+import type { ChangeFile } from '../../src/shared/contracts';
 
 function split(text: string): string[] {
-  return text.split('\n');
+  return splitContentLines(text);
 }
+
+describe('splitContentLines', () => {
+  test('empty content has no lines', () => {
+    expect(splitContentLines('')).toEqual([]);
+  });
+
+  test('trailing newline does not create a phantom line', () => {
+    expect(splitContentLines('x\n')).toEqual(['x']);
+    expect(splitContentLines('a\nb\n')).toEqual(['a', 'b']);
+  });
+
+  test('missing trailing newline still counts the last line', () => {
+    expect(splitContentLines('a\nb')).toEqual(['a', 'b']);
+  });
+
+  test('a lone newline is one empty line', () => {
+    expect(splitContentLines('\n')).toEqual(['']);
+  });
+});
+
+describe('fileChangeStats', () => {
+  const makeFile = (overrides: Partial<ChangeFile>): ChangeFile => ({
+    id: 'f',
+    path: 'f',
+    previousPath: null,
+    kind: 'modified',
+    indexStatus: '.',
+    worktreeStatus: 'M',
+    fingerprint: 'x',
+    baseContent: null,
+    currentContent: null,
+    patch: null,
+    reviewable: true,
+    unavailableReason: null,
+    reviewState: 'pending',
+    ...overrides
+  });
+
+  test('trailing newline counts as one line for added files', () => {
+    const stats = fileChangeStats(makeFile({kind: 'added', currentContent: 'x\n', baseContent: null}));
+    expect(stats).toEqual({additions: 1, deletions: 0});
+  });
+
+  test('patch stats only count lines inside hunks', () => {
+    const patch = [
+      'diff --git a/f b/f',
+      '--- a/f',
+      '+++ b/f',
+      '@@ -1,2 +1,2 @@',
+      ' context',
+      '-删除行',
+      '+增加行',
+      '++这行正文以加号开头，也要计入新增',
+      '\\ No newline at end of file'
+    ].join('\n');
+    const stats = fileChangeStats(makeFile({patch}));
+    expect(stats).toEqual({additions: 2, deletions: 1});
+  });
+
+  test('non-reviewable files without material report null stats', () => {
+    const stats = fileChangeStats(makeFile({reviewable: false, kind: 'modified'}));
+    expect(stats).toEqual({additions: null, deletions: null});
+  });
+});
 
 describe('alignLines', () => {
   test('identical content yields equal rows only', () => {

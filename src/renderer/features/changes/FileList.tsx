@@ -15,6 +15,13 @@ interface Props {
   onSelect: (path: string) => void;
 }
 
+const REVIEW_STATE_GLYPH: Record<ChangeFile['reviewState'], {glyph: string; className: string; title: string}> = {
+  pending: {glyph: '○', className: 'muted', title: '未审查'},
+  reviewed: {glyph: '✓', className: 'green', title: '已审查'},
+  issue: {glyph: '⚑', className: 'red', title: '标记问题'},
+  recheck: {glyph: '↻', className: 'warning', title: '内容变化，待复审'}
+};
+
 function splitPath(path: string): {directory: string; name: string} {
   const at = path.lastIndexOf('/');
   if (at < 0) return {directory: '', name: path};
@@ -28,6 +35,7 @@ export function FileList({files, selectedPath, onSelect}: Props): React.JSX.Elem
         const {additions, deletions} = fileChangeStats(file);
         const {directory, name} = splitPath(file.path);
         const staged = file.indexStatus !== '.' && file.indexStatus !== '?';
+        const reviewGlyph = REVIEW_STATE_GLYPH[file.reviewState];
         return (
           <li key={file.id}>
             <button
@@ -38,6 +46,9 @@ export function FileList({files, selectedPath, onSelect}: Props): React.JSX.Elem
               onClick={() => onSelect(file.path)}
               title={file.unavailableReason ?? file.path}
             >
+              <span className={`review-glyph ${reviewGlyph.className}`} title={reviewGlyph.title}>
+                {reviewGlyph.glyph}
+              </span>
               <span className={`kind-badge kind-${file.kind}`}>{KIND_LABELS[file.kind]}</span>
               <span className="file-item-path">
                 <span className="file-dir">{directory}</span>

@@ -3,10 +3,11 @@
 ## 接手时的真实状态
 
 - 项目位置：本仓库根目录 `branchroom`。这是独立项目，不是 fde-study 的改动。
-- 用户当前要求已收束为“做好前期准备，后续 Claude Code 开发”。因此尚未建立 Electron/React 生产实现、安装生产依赖或生成 .app。
+- 正式桌面应用已在实现中：BR-001（Electron + React + TS 工程、原生选仓库、受限 preload）、BR-002（一致快照与 Diff 阅读）、BR-003（人工审查持久化与草稿）已完成并有测试证据，见 docs/BACKLOG.md；下一项是 BR-004（Agent Review）。
 - 已保存产品需求、术语、架构建议、契约、任务次序、验收，以及两个参考原型。
-- `reference/design` 是 Open Design 中获认可的暗色交互设计；`reference/prototype` 是已验证真实 Git / Codex 审查流程的 Bun 浏览器原型。
-- 运行记录、源仓库内容和凭据没有复制到这里。参考测试用临时 Git 仓库，不依赖 fde-study。
+- `reference/design` 是 Open Design 中获认可的暗色交互设计；`reference/prototype` 是已验证真实 Git / Codex 审查流程的 Bun 浏览器原型，仅作参考，不是生产实现。
+- 运行记录、源仓库内容和凭据没有复制到这里。测试用临时 Git 仓库，不依赖 fde-study。
+- docs/PROJECT-ISSUES.md 记录了一轮独立审计（CHECK-01..12）；修复状态见文末附录。
 
 ## 先读
 
@@ -35,15 +36,9 @@
 
 该提示词授权 BR-001；完成后可由用户要求继续后续任务。不要因为项目有 10 项 backlog 就在这次准备阶段或一个未经授权的会话中自动实现全部范围。
 
-## 准备阶段的现有命令
+## 当前命令
 
-```sh
-bun run check:prep
-bun run test:reference
-bun run prototype:design
-```
-
-真实参考原型另外设置 `BRANCHROOM_REPO` 再运行 `bun run prototype:live`，使用参考说明中的独立端口。当前没有正式 dev/build 命令；BR-001 创建后更新 README。
+正式应用：`bun run dev` / `typecheck` / `test` / `test:e2e` / `build` / `verify:packaged`（先打包再验证 .app）。准备检查与参考原型：`bun run check:prep`、`bun run test:reference`、`bun run prototype:design`；真实参考原型另外设置 `BRANCHROOM_REPO` 再运行 `bun run prototype:live`，使用参考说明中的独立端口。
 
 ## 不应发生的接手错误
 

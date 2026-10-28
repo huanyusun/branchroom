@@ -6,18 +6,23 @@ import {
   type RepositoryRegistry
 } from '../services/repositories';
 import { buildSnapshot } from '../services/snapshots';
+import type { ReviewService } from '../services/review-service';
 import type { Repository, RepositoryEntry, Result } from '../../shared/contracts';
 import {
+  parseFileScopedInput,
   parseGetSnapshotInput,
   parseNoInput,
   parseOpenRepositoryInput,
-  parseRemoveRepositoryInput
+  parseRemoveRepositoryInput,
+  parseSaveDraftInput,
+  parseSaveReviewInput
 } from '../../shared/schemas';
 
 export interface HandlerContext {
   getWindow(): BrowserWindow | null;
   recentStore: RecentRepositoryStore;
   registry: RepositoryRegistry;
+  reviewService: ReviewService;
   isDev: boolean;
 }
 
@@ -27,7 +32,11 @@ const CHANNELS = {
   listRepositoryEntries: 'branchroom:list-repository-entries',
   openRepositoryPath: 'branchroom:open-repository-path',
   removeRepository: 'branchroom:remove-repository',
-  getSnapshot: 'branchroom:get-snapshot'
+  getSnapshot: 'branchroom:get-snapshot',
+  saveReview: 'branchroom:save-review',
+  saveDraft: 'branchroom:save-draft',
+  listReviewEntries: 'branchroom:list-review-entries',
+  clearDraft: 'branchroom:clear-draft'
 } as const;
 
 function ok<T>(data: T): Result<T> {
@@ -155,8 +164,42 @@ export function registerRepositoryHandlers(ipcMain: IpcMain, ctx: HandlerContext
     }
     const repository = await openRepository(root);
     ctx.registry.remember(repository);
-    const snapshot = await buildSnapshot(repository);
+    // 已保存的人工结论随快照一起套用；内容变化会派生 recheck（存储不改写）
+    const reviewData = await ctx.reviewService.loadReviewData(repository.id);
+    const snapshot = await buildSnapshot(repository, {reviewData});
+    ctx.reviewService.rememberSnapshot(snapshot);
     return ok(snapshot);
+  });
+
+  guard(CHANNELS.saveReview, async (input) => {
+    const parsed = parseSaveReviewInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    await ctx.reviewService.saveReview(parsed.value);
+    return ok(undefined);
+  });
+
+  guard(CHANNELS.saveDraft, async (input) => {
+    const parsed = parseSaveDraftInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    await ctx.reviewService.saveDraft(parsed.value);
+    return ok(undefined);
+  });
+
+  guard(CHANNELS.listReviewEntries, async (input) => {
+    const parsed = parseGetSnapshotInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    const root = ctx.registry.rootOf(parsed.value.repoId);
+    if (root === null) {
+      return fail('repository_unavailable', '此仓库尚未在本会话打开，请先重新打开。');
+    }
+    return ok(await ctx.reviewService.listEntries(parsed.value.repoId));
+  });
+
+  guard(CHANNELS.clearDraft, async (input) => {
+    const parsed = parseFileScopedInput(input);
+    if (!parsed.ok) return fail('invalid_input', parsed.message);
+    await ctx.reviewService.clearDraft(parsed.value.repoId, parsed.value.fileId);
+    return ok(undefined);
   });
 
   guard(CHANNELS.removeRepository, async (input) => {

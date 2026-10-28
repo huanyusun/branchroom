@@ -1,13 +1,13 @@
 # 本地开发任务
 
-跟踪方式：本文件，不创建远程 issue。正式应用目前尚无实现；仅 BR-001 为 ready。完成任务后补上提交、测试证据与剩余限制，再推进下一项。不要把计划勾选当作实现证据。
+跟踪方式：本文件，不创建远程 issue。完成任务后补上提交、测试证据与剩余限制，再推进下一项。不要把计划勾选当作实现证据。独立审计记录见 docs/PROJECT-ISSUES.md。
 
 | ID | 状态 | 类型 | 交付 | 依赖 |
 | --- | --- | --- | --- | --- |
 | BR-001 | done | architecture | Electron + React + TS 工程、原生选仓库、受限 preload、基础测试与打包启动验证 | 无 |
 | BR-002 | done | feature | Git 服务、一致性快照、真实文件列表、双栏/单栏 Diff 与全文 | BR-001 |
-| BR-003 | ready | feature | 持久化人工审查/草稿、内容变化复审、仓库与 worktree 隔离 | BR-002 |
-| BR-004 | backlog | feature | Codex/Claude 适配、配置兼容诊断、任务生命周期、校验报告与历史 | BR-002 |
+| BR-003 | done | feature | 持久化人工审查/草稿、内容变化复审、仓库与 worktree 隔离 | BR-002 |
+| BR-004 | ready | feature | Codex/Claude 适配、配置兼容诊断、任务生命周期、校验报告与历史 | BR-002 |
 | BR-005 | backlog | design | Agent 意见定位/采纳、修复反馈、复审闭环与三轮真实试用 | BR-003、BR-004 |
 | BR-006 | backlog | feature | 显式暂存/取消暂存、提交预览与文件级提交 | BR-005 |
 | BR-007 | backlog | feature | 分支/提交图/详情/筛选联动与分支基础操作 | BR-006 |
@@ -55,9 +55,23 @@
 - 冲突文件显示工作区全文（含冲突标记），不做三栏合并视图；属 BR-008 冲突处理范围。
 - worktree 目录内的仓库已按 worktree 根登记，但 BR-003 之前审查记录还没有持久化隔离可言。
 
-## BR-003 · 人的审查状态
+## BR-003 · 人的审查状态（done，2026-10-28）
 
 验收：重启恢复；两仓库与两个 worktree 不串状态；只 stage/unstage 不误判过期；内容变化后受影响文件待复审；保存旧 fingerprint 被拒绝且草稿保留；超长反馈明确报错而非截断。
+
+实际证据（2026-10-28）：
+
+- `bun run test` 88/88：审查存储读写/损坏备份/原子写；身份只绑定基线+当前内容（stage/unstage 不变）；重试落定新 HEAD；标记后内容变化派生 recheck 而不改写历史；保存旧 fingerprint 被拒（content_changed）且草稿保留；超长反馈报 note_too_large 不截断；主仓库与 linked worktree 记录互不可见。
+- `bun run test:e2e` 12/12：标记已审查+反馈重启后恢复；草稿防抖自动保存、重启恢复；标记后磁盘再变化 → 刷新显示 ↻ 待复审，过期保存被拒且提示 content_changed；linked worktree 打开为未审查；renderer 无任意系统调用入口（bridge 扩至 10 个类型化方法）。
+- 结论保存前主进程双重核对：快照登记表指纹 + 磁盘实时身份（git status 单路径 + blob/磁盘内容），与快照生成规则一致。
+
+同一轮修复了 docs/PROJECT-ISSUES.md 的独立审计发现（CHECK-01..11），证据见该文件文末附录；CHECK-12 的文档矛盾已同步。
+
+已知限制与后续补齐点：
+
+- 反馈草稿的防抖自动保存按文件为粒度；切换文件前未满延时的输入以最后一次落盘为准。
+- 大 Diff 的对齐计算预算按行数阈值跳过（明确提示），worker 化与虚拟化在 BR-009 细化。
+- Agent Review 仍未实现；"采纳意见产生反馈草稿"属 BR-005。
 
 ## BR-004 · Agent Review
 

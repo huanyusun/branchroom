@@ -19,6 +19,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "verify:packaged": "bun run package:mac && BRANCHROOM_REQUIRED_PACKAGED=1 playwright test tests/e2e/packaged-app.spec.ts",
     "package:mac": "bun run build && electron-builder --mac --dir",
     "check:prep": "bun scripts/check-prep.ts",
     "test:reference": "bun test reference/prototype/review-core.test.ts reference/prototype/agent-review.test.ts",

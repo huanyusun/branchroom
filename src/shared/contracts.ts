@@ -104,7 +104,7 @@ export interface RepositoryEntry {
 /** preload 实际暴露的 API 子集（BR-001/BR-002）。 */
 export type ExposedBranchroomAPI = Pick<
   BranchroomAPI,
-  'chooseRepository' | 'listRepositories' | 'getSnapshot'
+  'chooseRepository' | 'listRepositories' | 'getSnapshot' | 'saveReview'
 > & {
   /** 按已知路径重新打开最近仓库；主进程会重新校验它是有效 Git 仓库。 */
   openRepositoryPath(root: string): Promise<Result<Repository>>;
@@ -112,7 +112,38 @@ export type ExposedBranchroomAPI = Pick<
   removeRepository(id: RepoId): Promise<Result<void>>;
   /** 最近仓库完整列表，包含已失效路径，供“重新打开/移除”入口使用。 */
   listRepositoryEntries(): Promise<Result<RepositoryEntry[]>>;
+  /** 自动保存反馈草稿；绑定内容身份，内容变化后保存的草稿会被标记 stale。 */
+  saveDraft(input: {repoId: RepoId; snapshotId: SnapshotId; fileId: FileId; expectedFingerprint: string; note: string}): Promise<Result<void>>;
+  /** 已保存结论与草稿概览；stale 表示内容在标记之后又发生了变化。 */
+  listReviewEntries(repoId: RepoId): Promise<Result<ReviewOverview>>;
+  /** 放弃草稿。 */
+  clearDraft(repoId: RepoId, fileId: FileId): Promise<Result<void>>;
 };
+
+/** 人工结论概览；recheck 是派生态，reviews 里只存 reviewed/issue。 */
+export interface ReviewOverview {
+  reviews: Record<string, ReviewEntryView>;
+  drafts: Record<string, DraftEntryView>;
+}
+
+export interface ReviewEntryView {
+  fileId: FileId;
+  state: 'reviewed' | 'issue';
+  note: string;
+  contentIdentity: string;
+  snapshotId: SnapshotId;
+  updatedAt: string;
+  stale: boolean;
+}
+
+export interface DraftEntryView {
+  fileId: FileId;
+  note: string;
+  contentIdentity: string;
+  snapshotId: SnapshotId;
+  updatedAt: string;
+  stale: boolean;
+}
 
 export interface BranchroomAPI {
   chooseRepository(): Promise<Result<Repository | null>>; // 取消不是异常

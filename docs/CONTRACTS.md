@@ -1,6 +1,6 @@
 # 首个切片接口契约
 
-下列为正式实现的约定。类型已放入 src/shared/contracts.ts，IPC 输入在 src/shared/schemas.ts 做运行时校验。已实现并暴露：chooseRepository、listRepositories、getSnapshot（BR-002）、openRepositoryPath、removeRepository、listRepositoryEntries；其余方法待对应任务。
+下列为正式实现的约定。类型已放入 src/shared/contracts.ts，IPC 输入在 src/shared/schemas.ts 做运行时校验。已实现并暴露：chooseRepository、listRepositories、getSnapshot、saveReview、saveDraft、listReviewEntries、clearDraft（BR-002/003）、openRepositoryPath、removeRepository、listRepositoryEntries；其余方法待对应任务。
 
 ```ts
 export type RepoId = string;

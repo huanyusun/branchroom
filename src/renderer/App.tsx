@@ -119,7 +119,7 @@ export default function App(): React.JSX.Element {
           />
         </>
       ) : (
-        <Workspace repository={repository} />
+        <Workspace key={repository.id} repository={repository} />
       )}
     </main>
   );

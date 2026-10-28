@@ -3,10 +3,11 @@ import type {
   ExposedBranchroomAPI,
   Repository,
   RepositoryEntry,
-  Result
+  Result,
+  ReviewOverview,
+  Snapshot
 } from '../shared/contracts';
-
-import type { Snapshot } from '../shared/contracts';
+import type { SaveDraftInput, SaveReviewInput } from '../shared/schemas';
 
 // 只暴露具体方法；不暴露 ipcRenderer 或原始 invoke。
 // 返回值类型是主进程 Result 的镜像；跨 IPC 的运行时数据由主进程 schema 校验保证。
@@ -22,7 +23,15 @@ const api: ExposedBranchroomAPI = {
   removeRepository: (id: string): Promise<Result<void>> =>
     ipcRenderer.invoke('branchroom:remove-repository', {id}) as Promise<Result<void>>,
   getSnapshot: (repoId: string): Promise<Result<Snapshot>> =>
-    ipcRenderer.invoke('branchroom:get-snapshot', {repoId}) as Promise<Result<Snapshot>>
+    ipcRenderer.invoke('branchroom:get-snapshot', {repoId}) as Promise<Result<Snapshot>>,
+  saveReview: (input: SaveReviewInput): Promise<Result<void>> =>
+    ipcRenderer.invoke('branchroom:save-review', input) as Promise<Result<void>>,
+  saveDraft: (input: SaveDraftInput): Promise<Result<void>> =>
+    ipcRenderer.invoke('branchroom:save-draft', input) as Promise<Result<void>>,
+  listReviewEntries: (repoId: string): Promise<Result<ReviewOverview>> =>
+    ipcRenderer.invoke('branchroom:list-review-entries', {repoId}) as Promise<Result<ReviewOverview>>,
+  clearDraft: (repoId: string, fileId: string): Promise<Result<void>> =>
+    ipcRenderer.invoke('branchroom:clear-draft', {repoId, fileId}) as Promise<Result<void>>
 };
 
 contextBridge.exposeInMainWorld('branchroom', api);

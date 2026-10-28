@@ -30,3 +30,84 @@ export function parseGetSnapshotInput(input: unknown): Parsed<{repoId: string}> 
   if (typeof repoId !== 'string' || repoId.trim() === '') return fail('repoId 必须是非空字符串');
   return {ok: true, value: {repoId}};
 }
+
+const REVIEW_SAVE_STATES = new Set(['pending', 'reviewed', 'issue']);
+
+export interface SaveReviewInput {
+  repoId: string;
+  snapshotId: string;
+  fileId: string;
+  expectedFingerprint: string;
+  state: 'pending' | 'reviewed' | 'issue';
+  note: string;
+}
+
+export function parseSaveReviewInput(input: unknown): Parsed<SaveReviewInput> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const record = input as Record<string, unknown>;
+  for (const field of ['repoId', 'snapshotId', 'fileId', 'expectedFingerprint'] as const) {
+    if (typeof record[field] !== 'string' || (record[field] as string).trim() === '') {
+      return fail(`${field} 必须是非空字符串`);
+    }
+  }
+  if (typeof record.state !== 'string' || !REVIEW_SAVE_STATES.has(record.state)) {
+    return fail('state 必须是 pending / reviewed / issue');
+  }
+  if (typeof record.note !== 'string') return fail('note 必须是字符串');
+  return {
+    ok: true,
+    value: {
+      repoId: record.repoId as string,
+      snapshotId: record.snapshotId as string,
+      fileId: record.fileId as string,
+      expectedFingerprint: record.expectedFingerprint as string,
+      state: record.state as SaveReviewInput['state'],
+      note: record.note
+    }
+  };
+}
+
+export interface SaveDraftInput {
+  repoId: string;
+  snapshotId: string;
+  fileId: string;
+  expectedFingerprint: string;
+  note: string;
+}
+
+/** 草稿与结论共用身份字段，但草稿不需要 state。 */
+function parseReviewIdentity(input: unknown): Parsed<{repoId: string; snapshotId: string; fileId: string; expectedFingerprint: string; note: string}> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const record = input as Record<string, unknown>;
+  for (const field of ['repoId', 'snapshotId', 'fileId', 'expectedFingerprint'] as const) {
+    if (typeof record[field] !== 'string' || (record[field] as string).trim() === '') {
+      return fail(`${field} 必须是非空字符串`);
+    }
+  }
+  if (typeof record.note !== 'string') return fail('note 必须是字符串');
+  return {
+    ok: true,
+    value: {
+      repoId: record.repoId as string,
+      snapshotId: record.snapshotId as string,
+      fileId: record.fileId as string,
+      expectedFingerprint: record.expectedFingerprint as string,
+      note: record.note
+    }
+  };
+}
+
+export function parseSaveDraftInput(input: unknown): Parsed<SaveDraftInput> {
+  return parseReviewIdentity(input);
+}
+
+export function parseFileScopedInput(input: unknown): Parsed<{repoId: string; fileId: string}> {
+  if (typeof input !== 'object' || input === null) return fail('参数必须是对象');
+  const record = input as Record<string, unknown>;
+  for (const field of ['repoId', 'fileId'] as const) {
+    if (typeof record[field] !== 'string' || (record[field] as string).trim() === '') {
+      return fail(`${field} 必须是非空字符串`);
+    }
+  }
+  return {ok: true, value: {repoId: record.repoId as string, fileId: record.fileId as string}};
+}

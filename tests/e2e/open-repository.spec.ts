@@ -178,11 +178,15 @@ test.describe('打开仓库（BR-001 验收流程）', () => {
       expect(security.electron).toBe('undefined');
       expect([...security.bridgeKeys].sort()).toEqual([
         'chooseRepository',
+        'clearDraft',
         'getSnapshot',
         'listRepositories',
         'listRepositoryEntries',
+        'listReviewEntries',
         'openRepositoryPath',
-        'removeRepository'
+        'removeRepository',
+        'saveDraft',
+        'saveReview'
       ]);
       const url = page.url();
       expect(url.startsWith('branchroom://app/')).toBe(true);
