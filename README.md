@@ -1,8 +1,15 @@
 # Branchroom
 
+[![CI](https://github.com/huanyusun/branchroom/actions/workflows/ci.yml/badge.svg)](https://github.com/huanyusun/branchroom/actions/workflows/ci.yml)
+
 面向 AI 编程的独立桌面 Git 客户端：沿用 IDEA 的高密度 Git 交互，以批量修改审查、Agent 辅助 Review 和增量复审为核心。
 
-**当前状态：BR-001..004 已实现（工程、变更阅读与 Diff、人工审查持久化、本地 Agent Review）。下一项是 BR-005（可用性验证与复审闭环）。Git 写操作尚未实现。** 参考 `reference/` 仍是原型，不是正式应用。
+**当前状态：BR-001..006 已实现并可日常使用（工程、真实变更阅读与 Diff、人工审查持久化、Agent Review 真实调用、意见采纳与复审闭环、暂存与提交到本地分支），打包产物见 Actions/Release。BR-005 剩余三轮真实试用待用户参与；下一项是 BR-007（分支与历史）。尚无 fetch/pull/push 与远程操作。** 参考 `reference/` 仍是原型，不是正式应用。
+
+## 在其他电脑获取构建
+
+- 推送即自动验证：GitHub → Actions → **CI** 查看每次提交的检查结果。
+- 要拿现成的 app：Actions → **Build macOS app** → Run workflow → 完成后在该次运行底部下载 `Branchroom-mac-arm64.zip`（Apple Silicon）或 `Branchroom-mac-x64.zip`（Intel）；推 `v*` 标签会自动发 Release。CI 产物为未签名构建，首次打开需在「系统设置 → 隐私与安全性」允许。
 
 ## 从这里开始
 

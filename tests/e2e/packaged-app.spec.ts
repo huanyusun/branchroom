@@ -7,7 +7,11 @@ import {promisify} from 'node:util';
 import {join} from 'node:path';
 
 const exec = promisify(execFile);
-const packagedBinary = join(process.cwd(), 'dist/mac/Branchroom.app/Contents/MacOS/Branchroom');
+// electron-builder 输出目录随架构不同：arm64 → mac-arm64，x64/intel → mac
+const packagedBinary = [
+  join(process.cwd(), 'dist/mac-arm64/Branchroom.app/Contents/MacOS/Branchroom'),
+  join(process.cwd(), 'dist/mac/Branchroom.app/Contents/MacOS/Branchroom')
+].find((candidate) => existsSync(candidate)) ?? join(process.cwd(), 'dist/mac/Branchroom.app/Contents/MacOS/Branchroom');
 const packagedAvailable = existsSync(packagedBinary);
 // verify:packaged 流程强制要求先完成 package:mac，缺失即失败而不是跳过
 const required = process.env.BRANCHROOM_REQUIRED_PACKAGED === '1';
